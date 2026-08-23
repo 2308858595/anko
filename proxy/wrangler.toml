@@ -8,6 +8,10 @@ compatibility_date = "2026-01-01"
 # 这样别的网站就没法盗用你的代理。留 "*" 表示不限来源。
 ALLOW_ORIGIN = "http://anko.kapp.pp.ua,https://anko.kapp.pp.ua,https://2308858595.github.io,http://localhost:8777"
 
+# 归因用的 app 地址。必须是单个合法 URL——OpenRouter 拿它当 app 的唯一标识，
+# 传逗号列表进去会被判成无效，app_id 直接记 null。
+APP_URL = "http://anko.kapp.pp.ua"
+
 # 可选：经 AI Gateway 转发（缓存 / 分析 / 额外限流）。key 依然只在本 Worker 里。
 # AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>"
 

@@ -280,6 +280,33 @@ Gemini Flash 这类模型会先「思考」一大段再写正文，而**思考 t
 实跑一整回合（三次调用）：思考占比从 66% 降到 10%，成本 $0.0332 → **$0.0113**。
 想要模型多想想就在设置里关掉。
 
+## 在 OpenRouter 后台认出是哪篇安科
+
+每次请求都带上这一局的标题，后台一眼能看出这些 token 烧在哪个故事上。
+
+用的**不是** `X-Title`——那是 app 的**显示名**，而 app 的身份由 `HTTP-Referer`
+那个 URL 决定（文档原话：*primary identifier for rankings*）。每回合换一次
+`X-Title`，只会把 openrouter.ai 上同一个 app 的名字反复改写，什么也分不出来。
+
+按请求落库的是 body 里这两个字段：
+
+| 字段 | 内容 | 在哪看得到 |
+|---|---|---|
+| `user` | 标题，如 `魏玛共和国的最后一夜` | activity 页面的 **Client User ID** 列 |
+| `session_id` | `标题 · 局号`，如 `…最后一夜 · 21cad29d` | `/api/v1/generation` 记录；同一篇开过几局可以分开 |
+
+`X-Title` 保持固定的 `Anko Player`，`HTTP-Referer` 固定 `http://anko.kapp.pp.ua`
+（Worker 里是单独的 `APP_URL` 变量——`ALLOW_ORIGIN` 是逗号分隔的列表，整串塞进
+`HTTP-Referer` 不是合法 URL）。
+
+几个实测出来的坑：
+
+- **`session_id` 超过 256 字符上游直接 400**。标题是玩家自由输入的，客户端和 Worker
+  两边都截；先截标题再拼局号，保证局号不会被切掉。4000 字的标题直连必炸，走代理是 200。
+- **`metadata` 收 200 但查不到**。请求带上 `metadata:{...}` 不报错，可同一条
+  `/api/v1/generation` 记录里根本没有这个字段，超长值也不校验——写进去等于写进黑洞，所以不发。
+- Worker 会剥掉标签里的控制字符再截断。浏览器传什么长度都不能信。
+
 ## 发布
 
 内置了一个 OpenRouter key，开箱即用。**但这是静态页面，key 藏不住**——

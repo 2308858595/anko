@@ -638,6 +638,35 @@ const LS = {
   del(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
 
+/* ── OpenRouter 归因 ───────────────────────────────────────────────
+   踩过的坑：X-Title 不是「这次请求的标签」，而是 app 的显示名，
+   而 app 的身份由 HTTP-Referer 那个 URL 决定（文档原话：primary
+   identifier for rankings）。每回合换一次 X-Title，只会把
+   openrouter.ai/apps 上同一个 app 的名字反复改写，什么也分不出来。
+
+   真正按请求落库的是 body 里的两个字段，实测 /api/v1/generation
+   会原样返回：session_id 和 user（记作 external_user）。
+   metadata 也收 200，但同一条 generation 记录里查不到它——写进去等于
+   写进黑洞，所以不发。
+   session_id 超过 256 字符上游直接 400，标题是玩家自由输入，必须先截。 */
+const APP_URL  = "http://anko.kapp.pp.ua";   // app 身份，别按局改
+const SID_CAP  = 256;
+const USER_CAP = 128;
+
+const rid = n => Array.from(crypto.getRandomValues(new Uint8Array(n)),
+                            b => b.toString(16).padStart(2,"0")).join("");
+
+const cleanTitle = () => (cfg.title || "未命名安科").replace(/\s+/g," ").trim();
+
+/* user → activity 页面上的 Client User ID 那一列，直接放标题 */
+const userTag = () => cleanTitle().slice(0, USER_CAP);
+/* session_id → 同一篇安科可能开过好几局，后面缀上局号区分。
+   先截标题再拼 id，保证 id 不会被 256 的上限切掉。 */
+function sessionId(){
+  const id = cfg.sid || "nosid";
+  return cleanTitle().slice(0, Math.max(1, SID_CAP - id.length - 3)) + " · " + id;
+}
+
 const PRESETS = [
   { n:"萌百娘上初中", t:"萌百娘的初中生活",
     p:"萌娘百科的看板娘「萌百娘」升入初中，今天是进入新学校的第一天。她的同桌会是谁呢……？\n轻松向校园日常喜剧，偶尔混进一点点超展开。" },
@@ -716,7 +745,7 @@ function affMap(raw){
 
 let cfg = { key:"", model:"~google/gemini-flash-latest", title:"", premise:"",
   chaos:3, len:"mid", temp:1, mem:3, plan:true, duel:true, anka:true, status:true, sound:true,
-  chargen:true, cheat:false, bigroll:true, bigTables:false, fast:false, sepopts:true, thrift:true, pool:"" };
+  chargen:true, cheat:false, bigroll:true, bigTables:false, fast:false, sepopts:true, thrift:true, pool:"", sid:"" };
 let game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null };
 let busy = false, ctrl = null;
 
@@ -725,6 +754,7 @@ const saveGame = () => LS.set(SAVE, JSON.stringify(game));
 function loadCfg(){
   try{ Object.assign(cfg, JSON.parse(LS.get(CFGK)||"{}")); }catch(e){}
   if(typeof cfg.key !== "string") cfg.key = "";
+  if(!cfg.sid) cfg.sid = rid(4);          // 旧存档没有，补一个
 }
 function loadGame(){
   try{ const g = JSON.parse(LS.get(SAVE)||"null"); if(g && g.turns && g.turns.length) return g; }catch(e){}
@@ -1620,12 +1650,15 @@ async function streamChat(msgs, onText, signal, sys){
      effort=minimal 思考归零、正文一样长、$0.00196 —— 便宜三分之二。
      关掉省钱模式就不发这个字段，交回模型自己的默认行为。 */
   if(cfg.thrift !== false) body.reasoning = { effort: "minimal" };
+  // 这一局是哪篇安科——落进 OpenRouter 的 activity（Client User ID 列）和 generation 记录
+  body.session_id = sessionId();
+  body.user       = userTag();
   // 代理模式不带任何凭据
   const res = await fetch(proxied ? PROXY_URL : API+"/chat/completions", { method:"POST", signal,
     headers: proxied
       ? { "Content-Type":"application/json" }
       : { "Content-Type":"application/json", "Authorization":"Bearer "+cfg.key.trim(),
-          "X-Title":"Anko Player", "HTTP-Referer":"https://localhost/anko" },
+          "X-Title":"Anko Player", "HTTP-Referer":APP_URL },
     body: JSON.stringify(body) });
   if(!res.ok){
     let d = await res.text();
@@ -2530,7 +2563,7 @@ $("#btn-start").onclick = () => {
   if(!premise){ toast("先写一句前提设定吧"); $("#f-premise").focus(); return; }
   const key = $("#f-key").value.trim();
   if(!key && !hasProxy()){ toast("需要一个 OpenRouter API Key"); $("#f-key").focus(); return; }
-  Object.assign(cfg, { key, premise,
+  Object.assign(cfg, { key, premise, sid: rid(4),
     model: $("#f-model").value.trim() || "~google/gemini-flash-latest",
     title: $("#f-title").value.trim() || premise.split(/[。\n，]/)[0].slice(0,20),
     chaos:+$("#f-chaos").value, temp:+$("#f-temp").value, mem:+$("#f-mem").value,

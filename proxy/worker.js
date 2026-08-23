@@ -22,6 +22,14 @@ const ALLOWED_MODELS = [                 // 与 OpenRouter 侧的 guardrail 白�
 const DEFAULT_MODEL = ALLOWED_MODELS[0];
 const MAX_BODY_BYTES = 400_000;
 const MAX_OUTPUT_TOKENS = 4000;
+const MAX_SESSION_CHARS = 256;   // 上游硬限制：超一个字符就是 400
+const MAX_USER_CHARS = 128;
+
+/* 客户端传来的标签是玩家自由输入的文本，会原样落进 OpenRouter 的日志。
+   进上游之前先剥掉控制字符再截断——代理不能信任浏览器传的任何长度。 */
+const label = (v, max) => typeof v === "string"
+  ? (v.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max) || undefined)
+  : undefined;
 
 const cors = o => ({
   "Access-Control-Allow-Origin": o || "*",
@@ -73,6 +81,17 @@ export default {
       typeof body.max_tokens === "number" ? body.max_tokens : MAX_OUTPUT_TOKENS);
     // 省钱模式：关掉模型的思考过程（实测省约 2/3）
     if (body.reasoning && typeof body.reasoning === "object") safe.reasoning = body.reasoning;
+    // 每局的标题 + 局号，以及浏览器级匿名 id。
+    // 这两个字段 OpenRouter 会按请求存下来（generation 记录里的
+    // session_id / external_user），是唯一能区分「哪篇安科」的地方——
+    // X-Title 是 app 显示名，按局改只会反复覆盖同一个名字。
+    const sid = label(body.session_id, MAX_SESSION_CHARS); if (sid) safe.session_id = sid;
+    const usr = label(body.user, MAX_USER_CHARS);          if (usr) safe.user = usr;
+
+    /* HTTP-Referer 决定归因到哪个 app（文档原话：primary identifier for
+       rankings），它要的是单个 URL。ALLOW_ORIGIN 现在是逗号分隔的列表，
+       整串塞进去不是合法 URL，所以单列一个 APP_URL；没配就退回列表第一项。 */
+    const appUrl = (env.APP_URL || allowList[0] || "https://localhost/anko").trim();
 
     const upstream = env.AI_GATEWAY
       ? env.AI_GATEWAY.replace(/\/+$/, "") + "/openrouter/v1/chat/completions"
@@ -85,7 +104,7 @@ export default {
         headers: {
           "Authorization": `Bearer ${env.OPENROUTER_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": env.ALLOW_ORIGIN || "https://localhost/anko",
+          "HTTP-Referer": appUrl,
           "X-Title": "Anko Player",
         },
         body: JSON.stringify(safe),
