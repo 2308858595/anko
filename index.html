@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>安科 · あんこスレ — 掷骰推进的随机剧情</title>
+<style>
+:root{
+  --bg:#100e17; --bg2:#171423; --card:#1d1a2b; --card2:#241f36;
+  --line:#332c4a; --line2:#463c63;
+  --tx:#ece8f5; --tx2:#b3aac9; --tx3:#7d7396;
+  --pink:#ff6ba8; --pink2:#ff8fbe; --purple:#9d7bff;
+  --gold:#ffc861; --green:#5fd6a0; --red:#ff6b6b; --cyan:#6bd5e1;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,-apple-system,sans-serif;
+  --serif:"Songti SC","Noto Serif SC","Source Han Serif SC","Hiragino Mincho ProN",Georgia,serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:15px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(900px 500px at 12% -8%,rgba(255,107,168,.13),transparent 62%),
+             radial-gradient(800px 500px at 88% 4%,rgba(157,123,255,.13),transparent 62%),
+             radial-gradient(700px 600px at 50% 108%,rgba(255,200,97,.06),transparent 60%)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+::selection{background:rgba(255,107,168,.34)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:2px solid var(--bg)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:10px;
+  background:var(--card2);border:1px solid var(--line);color:var(--tx2);font-size:13.5px;font-weight:500;
+  transition:.16s;white-space:nowrap}
+.btn:hover{background:var(--line);color:var(--tx);border-color:var(--line2)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn.primary{background:linear-gradient(135deg,var(--pink),#e0559a);border-color:transparent;color:#fff;
+  font-weight:600;box-shadow:0 4px 18px rgba(255,107,168,.3)}
+.btn.primary:hover{background:linear-gradient(135deg,var(--pink2),var(--pink));color:#fff}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.ghost:hover{background:var(--card2)}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+.btn.danger:hover{background:rgba(255,107,107,.14);border-color:rgba(255,107,107,.4);color:var(--red)}
+
+label.f{display:block;margin-bottom:16px}
+label.f>.lb{display:flex;align-items:center;gap:8px;justify-content:space-between;font-size:12.5px;
+  color:var(--tx2);font-weight:600;margin-bottom:7px;letter-spacing:.02em}
+label.f .hint{font-weight:400;color:var(--tx3);font-size:11.5px}
+.inp{width:100%;padding:10px 13px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);
+  transition:.15s;font-size:14px}
+.inp:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,107,168,.13)}
+textarea.inp{resize:vertical;min-height:96px;line-height:1.65}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:3px;background:var(--line);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+  background:var(--pink);cursor:pointer;box-shadow:0 0 0 4px rgba(255,107,168,.18)}
+.seg{display:flex;gap:6px;background:var(--bg2);padding:4px;border-radius:11px;border:1px solid var(--line)}
+.seg button{flex:1;padding:7px 8px;border-radius:8px;font-size:13px;color:var(--tx3);transition:.14s}
+.seg button.on{background:var(--card2);color:var(--pink2);font-weight:600}
+.switch{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.switch input{display:none}
+.switch .track{width:40px;height:23px;border-radius:12px;background:var(--line);position:relative;transition:.2s;flex:none}
+.switch .track::after{content:'';position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;
+  background:var(--tx3);transition:.2s}
+.switch input:checked+.track{background:rgba(255,107,168,.3)}
+.switch input:checked+.track::after{transform:translateX(17px);background:var(--pink)}
+
+/* ===== SETUP ===== */
+#setup{max-width:760px;margin:0 auto;padding:52px 22px 90px}
+.brand{text-align:center;margin-bottom:34px}
+.brand .zh{font-family:var(--serif);font-size:62px;font-weight:700;letter-spacing:.2em;line-height:1.1;
+  background:linear-gradient(150deg,var(--pink) 5%,var(--purple) 55%,var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .jp{color:var(--tx3);font-size:13px;letter-spacing:.42em;margin-top:6px}
+.brand .sub{color:var(--tx2);font-size:14.5px;margin-top:16px;line-height:1.8}
+.brand .sub b{color:var(--pink2);font-weight:600}
+.panel{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);
+  border-radius:20px;padding:26px;margin-bottom:18px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.panel>h2{font-size:13px;letter-spacing:.16em;color:var(--tx3);font-weight:700;margin-bottom:18px;
+  display:flex;align-items:center;gap:10px}
+.panel>h2::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chip{padding:7px 13px;border-radius:20px;background:var(--bg2);border:1px solid var(--line);
+  font-size:12.5px;color:var(--tx2);transition:.15s}
+.chip:hover{border-color:var(--pink);color:var(--pink2)}
+.chip.on{background:rgba(255,107,168,.15);border-color:var(--pink);color:var(--pink2);font-weight:600}
+.mode{padding:11px 14px;border-radius:11px;font-size:12.5px;line-height:1.7;margin-bottom:16px;
+  border:1px solid rgba(107,213,225,.3);background:rgba(107,213,225,.07);color:#cdeef2}
+.mode b{color:var(--cyan)}
+.mode.own{border-color:rgba(255,200,97,.3);background:rgba(255,200,97,.07);color:#f3e3c2}
+.mode.own b{color:var(--gold)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.adv{border-top:1px solid var(--line);margin-top:6px;padding-top:16px}
+.adv>summary{cursor:pointer;list-style:none;font-size:13px;color:var(--tx3);display:flex;align-items:center;gap:7px}
+.adv>summary::-webkit-details-marker{display:none}
+.adv>summary::before{content:'▸';transition:.2s;display:inline-block;color:var(--pink)}
+.adv[open]>summary::before{transform:rotate(90deg)}
+.adv .body{padding-top:18px}
+.go{width:100%;padding:16px;font-size:16.5px;border-radius:14px;margin-top:4px}
+.foot{text-align:center;color:var(--tx3);font-size:12px;margin-top:22px;line-height:1.9}
+
+/* ===== GAME ===== */
+#game{display:none;flex-direction:column;min-height:100%}
+header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:11px 18px;
+  background:rgba(16,14,23,.85);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+header .ttl{font-family:var(--serif);font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:min(40vw,360px)}
+header .meta{display:flex;gap:7px;align-items:center;color:var(--tx3);font-size:11.5px;font-family:var(--mono)}
+.tag{padding:3px 9px;border-radius:20px;background:var(--card2);border:1px solid var(--line);white-space:nowrap}
+header .sp{flex:1}
+.hbtns{display:flex;gap:4px}
+.btn.hot{color:var(--cyan);background:rgba(107,213,225,.14);border-color:rgba(107,213,225,.45)}
+#feed{max-width:840px;width:100%;margin:0 auto;padding:26px 20px 40px;flex:1}
+
+/* 只有「新出现」的东西才动画。整块重绘时不能带动画，否则每次重绘整个历史都会闪一下 */
+.turn{margin-bottom:38px}
+.pop{animation:rise .4s cubic-bezier(.2,.7,.3,1)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.tno{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-family:var(--mono);font-size:11.5px;
+  color:var(--tx3);letter-spacing:.1em}
+.tno .n{color:var(--pink2);font-weight:700;font-size:12.5px;padding:3px 11px;border-radius:20px;
+  background:rgba(255,107,168,.1);border:1px solid rgba(255,107,168,.26)}
+.tno::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+/* 场景抬头 [时间][地点] */
+.scene{font-family:var(--mono);font-size:12.5px;color:var(--cyan);margin-bottom:12px;line-height:1.9;
+  opacity:.9}
+.scene div::before{content:'[';opacity:.5}
+.scene div::after{content:']';opacity:.5}
+
+.narr{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:24px 28px;font-family:var(--serif);font-size:16.5px;line-height:2.05;color:#f2eefb}
+.narr::before,.narr::after{position:absolute;font-family:var(--serif);font-size:44px;color:var(--line2);
+  line-height:1;opacity:.85}
+.narr::before{content:'“';top:8px;left:9px}
+.narr::after{content:'”';bottom:-4px;right:11px}
+.narr p{margin:0 0 .95em}
+.narr p:last-child{margin-bottom:0}
+.narr b,.narr strong{color:var(--gold);font-weight:700}
+.narr em{color:var(--pink2);font-style:normal;border-bottom:1px dashed rgba(255,107,168,.4)}
+.narr .sp{color:var(--purple);font-weight:600}
+.cursor{display:inline-block;width:8px;height:17px;background:var(--pink);vertical-align:-2px;
+  margin-left:2px;animation:blink .9s steps(2,start) infinite;border-radius:1px}
+@keyframes blink{to{visibility:hidden}}
+
+/* 导游吐槽 */
+.aside{font-family:var(--mono);font-size:12.5px;color:var(--tx3);background:rgba(157,123,255,.07);
+  border-left:2px solid var(--purple);padding:7px 13px;margin:.9em 0;border-radius:0 7px 7px 0;
+  line-height:1.7;letter-spacing:.02em}
+
+/* 判定骰点行 */
+.chk{margin:.9em 0;padding:10px 14px;border-radius:10px;background:rgba(255,200,97,.06);
+  border:1px solid rgba(255,200,97,.2);font-family:var(--mono);font-size:12.5px;line-height:1.75}
+.chk .q{color:var(--tx2);display:block;margin-bottom:3px}
+.chk .q i{font-style:normal;color:var(--gold);opacity:.75;margin-right:6px}
+.chk .mods{color:var(--tx3);font-size:11.5px}
+.chk .mods s{text-decoration:none;color:var(--green)}
+.chk .mods u{text-decoration:none;color:var(--red)}
+.chk .eq{color:var(--gold);font-size:13px}
+.chk .eq b{font-size:16px;font-weight:700}
+.chk .out{margin-left:8px;padding:1px 8px;border-radius:5px;background:rgba(255,200,97,.15);font-size:12px}
+.chk.crit{background:rgba(95,214,160,.09);border-color:rgba(95,214,160,.35)}
+.chk.crit .eq,.chk.crit .q i{color:var(--green)}
+.chk.crit .out{background:rgba(95,214,160,.2);color:var(--green)}
+.chk.fumb{background:rgba(255,107,107,.09);border-color:rgba(255,107,107,.35)}
+.chk.fumb .eq,.chk.fumb .q i{color:var(--red)}
+.chk.fumb .out{background:rgba(255,107,107,.2);color:var(--red)}
+.chk.hide{background:rgba(125,115,150,.08);border-color:var(--line)}
+.chk.hide .eq{color:var(--tx3)}
+.chk.aff{background:rgba(255,107,168,.07);border-color:rgba(255,107,168,.24)}
+.chk.aff .eq,.chk.aff .q i{color:var(--pink2)}
+.chk.aff .out{background:rgba(255,107,168,.16);color:var(--pink2)}
+
+/* 人物卡 */
+.card{margin-top:16px;background:var(--card);border:1px solid var(--line2);border-radius:var(--r);padding:18px 20px}
+.card .ch{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--gold);
+  margin-bottom:12px;display:flex;align-items:center;gap:9px}
+.card .ch::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+.attrs{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;margin-bottom:12px}
+.at{position:relative;background:var(--bg2);border:1px solid var(--line);border-radius:9px;
+  padding:7px 11px;font-family:var(--mono);font-size:12.5px;display:flex;align-items:baseline;
+  gap:8px;overflow:hidden}
+.at i{font-style:normal;color:var(--tx2);flex:1}
+.at b{font-size:16px;font-weight:700;color:var(--tx);position:relative;z-index:1}
+.at em{position:absolute;left:0;bottom:0;height:2px;background:var(--tx3);border-radius:2px}
+.at.hi{border-color:rgba(95,214,160,.45)}
+.at.hi b{color:var(--green)} .at.hi em{background:var(--green)}
+.at.lo{border-color:rgba(255,107,107,.45)}
+.at.lo b{color:var(--red)} .at.lo em{background:var(--red)}
+.at i u{text-decoration:none;color:var(--gold);font-size:11px;vertical-align:super}
+.esc{margin-top:9px;padding:9px 13px;border-radius:9px;background:rgba(157,123,255,.09);
+  border:1px solid rgba(157,123,255,.28);border-left:3px solid var(--purple);line-height:1.75}
+.esc .q i{color:var(--purple)}
+.esc .eq{color:var(--purple)}
+.esc .eq .out{background:rgba(157,123,255,.2);color:#d9c8ff}
+/* 光谱位置条：把百分位画出来，免得中间值被读成极值 */
+.spec{display:block;position:relative;height:5px;border-radius:3px;margin:7px 0 2px;
+  background:linear-gradient(90deg,rgba(107,213,225,.35),var(--line),rgba(255,107,168,.35))}
+.spec::before{content:'';position:absolute;left:50%;top:-2px;width:1px;height:9px;
+  background:var(--line2)}
+.spec i{position:absolute;top:-4px;width:3px;height:13px;border-radius:2px;
+  background:var(--gold);box-shadow:0 0 8px rgba(255,200,97,.8);transform:translateX(-50%)}
+.ck{display:inline-flex;gap:4px;align-items:center;margin-left:9px;vertical-align:middle}
+.mini{padding:1px 7px;border-radius:6px;border:1px solid var(--line2);color:var(--tx3);
+  font-size:11px;line-height:1.6;transition:.15s}
+.mini:hover{color:var(--purple);border-color:var(--purple);background:rgba(157,123,255,.14)}
+.mini.on{color:var(--gold);border-color:var(--gold);background:rgba(255,200,97,.16)}
+.mini-n{width:46px;padding:1px 5px;border-radius:6px;background:var(--bg2);
+  border:1px solid var(--line);font-family:var(--mono);font-size:11px;text-align:center;color:var(--tx2)}
+.cheatbar .lb2{font-size:11.5px;color:var(--tx3);width:100%;margin-bottom:2px}
+.cheatbar{display:flex;gap:7px;align-items:center;margin-top:12px;flex-wrap:wrap;
+  padding:9px 12px;border-radius:10px;background:rgba(157,123,255,.06);
+  border:1px dashed rgba(157,123,255,.3)}
+.cheatbar .lb:first-child{color:var(--purple);font-weight:600}
+.cheatbar .lb{font-family:var(--mono);font-size:11.5px;color:var(--tx3)}
+.cheatbar input{width:58px;padding:5px 8px;border-radius:8px;background:var(--bg2);
+  border:1px solid var(--line);font-family:var(--mono);font-size:13px;text-align:center}
+
+/* 状态 / 好感 / 线索 */
+.stat{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.stat .s{font-size:12px;padding:5px 11px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);
+  color:var(--tx2);font-family:var(--mono)}
+.stat .s i{font-style:normal;color:var(--tx3);margin-right:6px}
+.stat .s b{color:var(--gold);font-weight:600}
+.clue{margin-top:12px;padding:11px 15px;border-radius:10px;background:rgba(107,213,225,.07);
+  border:1px solid rgba(107,213,225,.25);font-size:13.5px;color:#cdeef2;line-height:1.75}
+.clue .h{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:.1em;display:block;margin-bottom:4px}
+.affrow{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px}
+.affrow .a{font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:7px;
+  background:rgba(255,107,168,.08);border:1px solid rgba(255,107,168,.22);color:var(--pink2)}
+.affrow .a u{text-decoration:none;color:var(--tx2)}
+
+/* 交锋 */
+.duel{margin:16px 0;border:1px solid rgba(157,123,255,.35);border-radius:var(--r);overflow:hidden;
+  background:rgba(157,123,255,.05)}
+.duel .dh{padding:12px 16px;background:rgba(157,123,255,.12);font-size:13.5px;font-weight:600;
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.duel .dh .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--purple)}
+.duel .bar{display:flex;align-items:center;gap:3px;padding:11px 16px;border-bottom:1px solid rgba(157,123,255,.2)}
+.duel .bar .c{flex:1;height:7px;border-radius:4px;background:var(--line);transition:.3s}
+.duel .bar .c.us{background:var(--pink)}
+.duel .bar .c.them{background:var(--purple)}
+.duel .bar .nm{font-family:var(--mono);font-size:11px;color:var(--tx3);white-space:nowrap;padding:0 6px}
+.duel .rd{padding:9px 16px;font-family:var(--mono);font-size:12px;color:var(--tx2);
+  border-bottom:1px solid rgba(157,123,255,.12);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.duel .rd:last-child{border-bottom:none}
+.duel .rd .n{color:var(--tx3);flex:none;width:52px}
+.duel .rd .s{flex:1;min-width:150px}
+.duel .rd .s.w{color:var(--gold);font-weight:700}
+.duel .rd .adv{color:var(--purple);font-size:11px}
+.duel .win{padding:12px 16px;font-size:14px;font-weight:600;color:var(--gold);
+  background:rgba(255,200,97,.08)}
+
+/* 选项 */
+.opts{margin-top:16px;display:flex;flex-direction:column;gap:5px}
+.opts .hd{font-size:11.5px;color:var(--tx3);letter-spacing:.16em;font-weight:700;margin-bottom:5px;
+  display:flex;align-items:center;gap:9px}
+.opts .hd::after{content:'';flex:1;height:1px;background:var(--line)}
+.opt{display:flex;gap:12px;align-items:flex-start;padding:9px 14px;border-radius:10px;
+  border:1px solid transparent;background:var(--bg2);transition:.2s;font-size:14.5px;color:var(--tx2);
+  text-align:left;width:100%}
+.opt .i{flex:none;width:23px;height:23px;border-radius:7px;background:var(--card2);color:var(--tx3);
+  font-family:var(--mono);font-size:12px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;margin-top:1px;transition:.2s}
+.opt .t{flex:1;line-height:1.6}
+.opt.q .t{color:var(--purple);font-weight:600;letter-spacing:.1em}
+.opt.q .i{background:rgba(157,123,255,.18);color:var(--purple)}
+.opt.win{background:linear-gradient(100deg,rgba(255,107,168,.17),rgba(255,107,168,.05));
+  border-color:rgba(255,107,168,.5);color:#fff;font-weight:600}
+.opt.win .i{background:var(--pink);color:#fff}
+.opt.win::after{content:'← 选中';margin-left:auto;flex:none;font-size:11px;color:var(--pink2);
+  font-family:var(--mono);align-self:center;white-space:nowrap}
+.opt.dim{opacity:.4}
+.opt.pick{cursor:pointer}
+.opt.pick:hover{background:var(--card2);border-color:var(--line2);color:var(--tx)}
+
+.rollline{margin-top:14px;display:flex;flex-wrap:wrap;gap:9px;align-items:center;font-family:var(--mono);
+  font-size:13px;color:var(--gold);background:rgba(255,200,97,.07);border:1px solid rgba(255,200,97,.22);
+  padding:9px 14px;border-radius:10px}
+.rollline .lbl{color:var(--tx3)}
+.rollline .v{font-size:16px;font-weight:700}
+.rollline.chaos{color:var(--purple);background:rgba(157,123,255,.09);border-color:rgba(157,123,255,.3)}
+.rollline.manual{color:var(--green);background:rgba(95,214,160,.07);border-color:rgba(95,214,160,.24)}
+
+/* 章节结算 */
+.settle{margin:30px 0;border:1px solid var(--line2);border-radius:var(--r);background:var(--card);
+  padding:20px 22px}
+.settle h3{font-family:var(--serif);font-size:17px;margin-bottom:14px;color:var(--gold)}
+.settle .grp{margin-bottom:12px}
+.settle .grp b{font-size:11.5px;color:var(--tx3);letter-spacing:.1em;display:block;margin-bottom:6px}
+
+.dock{position:sticky;bottom:0;z-index:30;margin:0 -20px;padding:16px 20px 20px;
+  background:linear-gradient(180deg,transparent,var(--bg) 26%)}
+.dock .in{max-width:800px;margin:0 auto;background:var(--card);border:1px solid var(--line2);
+  border-radius:16px;padding:14px;box-shadow:0 -6px 34px rgba(0,0,0,.5)}
+.rollbtn{width:100%;padding:15px;font-size:16px;border-radius:12px;letter-spacing:.06em}
+.rollbtn .d{font-family:var(--mono);opacity:.75;font-size:13px}
+.anka{display:flex;gap:8px;margin-top:11px}
+.anka input{flex:1}
+.anka.hide{display:none}
+.dockmsg{text-align:center;color:var(--tx3);font-size:12.5px;padding:4px 0}
+.load{display:flex;align-items:center;gap:11px;color:var(--tx3);font-size:13.5px;padding:14px 4px}
+.dots{display:inline-flex;gap:4px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--pink);animation:bob .9s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes bob{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-5px)}}
+.err{background:rgba(255,107,107,.09);border:1px solid rgba(255,107,107,.34);border-radius:12px;
+  padding:15px 17px;color:#ffb0b0;font-size:13.5px;margin:10px 0}
+.err b{display:block;color:var(--red);margin-bottom:6px;font-size:14px}
+.err .m{font-family:var(--mono);font-size:12px;color:#e9a0a0;word-break:break-word;max-height:150px;
+  overflow:auto;line-height:1.55}
+.err .btns{margin-top:12px;display:flex;gap:8px}
+
+/* 骰子overlay */
+#dice{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:26px;background:rgba(10,8,16,.9);backdrop-filter:blur(9px)}
+#dice.on{display:flex;animation:fade .2s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.d10{width:190px;height:190px;position:relative;display:flex;align-items:center;justify-content:center}
+.d10 svg{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 0 34px rgba(255,107,168,.55))}
+.d10 .num{position:relative;font-family:var(--mono);font-size:70px;font-weight:700;color:#fff;z-index:2}
+.d10.spin{animation:tumble .42s linear infinite}
+@keyframes tumble{0%{transform:rotate(0) scale(1)}25%{transform:rotate(90deg) scale(1.06)}
+  50%{transform:rotate(180deg) scale(.95)}75%{transform:rotate(270deg) scale(1.06)}100%{transform:rotate(360deg)}}
+.d10.land{animation:pop .55s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pop{0%{transform:scale(1.35)}60%{transform:scale(.94)}100%{transform:scale(1)}}
+#dice .cap{font-family:var(--mono);color:var(--tx2);font-size:15px;letter-spacing:.14em}
+#dice .res{font-size:20px;font-family:var(--serif);color:var(--pink2);font-weight:700;text-align:center;
+  max-width:min(560px,86vw);line-height:1.6;opacity:0;transition:.4s}
+#dice .res.on{opacity:1}
+#dice .res .k{color:var(--purple)}#dice .res .g{color:var(--green)}#dice .res .r{color:var(--red)}
+#dice .lbl2{font-family:var(--sans);font-size:15px;color:var(--tx2);max-width:min(620px,88vw);
+  text-align:center;line-height:1.6}
+.dopts{display:flex;flex-direction:column;gap:6px;max-width:min(620px,88vw);width:100%}
+.dopts .do{padding:9px 15px;border-radius:10px;background:rgba(255,255,255,.045);
+  border:1px solid var(--line);color:var(--tx3);font-size:14px;display:flex;gap:11px;
+  align-items:flex-start;transition:.35s;opacity:.55}
+.dopts .do i{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--tx3);
+  flex:none;min-width:34px;padding-top:2px}
+.dopts .do.win{opacity:1;background:linear-gradient(100deg,rgba(255,107,168,.22),rgba(255,107,168,.06));
+  border-color:var(--pink);color:#fff;font-weight:600;transform:scale(1.02)}
+.dopts .do.win i{color:var(--pink2)}
+
+.modal{position:fixed;inset:0;z-index:90;display:none;background:rgba(9,7,14,.76);backdrop-filter:blur(7px);
+  align-items:flex-start;justify-content:center;padding:34px 18px;overflow-y:auto}
+.modal.on{display:flex}
+.modal .box{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line2);
+  border-radius:20px;padding:26px;max-width:600px;width:100%;animation:rise .28s}
+.panel{animation:none}
+.modal .box h2{font-size:19px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.modal .box h2 .x{margin-left:auto;font-size:22px;color:var(--tx3);line-height:1;padding:0 5px}
+.mfoot{display:flex;gap:9px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.mfoot .sp{flex:1}
+.note{font-size:12px;color:var(--tx3);line-height:1.75;margin:-8px 0 16px}
+.ledger{font-family:var(--mono);font-size:12.5px;line-height:2}
+.ledger .r{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid var(--line)}
+.ledger .r span:first-child{flex:1;color:var(--tx2)}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card2);
+  border:1px solid var(--line2);border-radius:11px;padding:11px 20px;font-size:13.5px;z-index:200;
+  transition:.3s;opacity:0;pointer-events:none}
+.toast.on{transform:translateX(-50%);opacity:1}
+
+@media(max-width:640px){
+  .brand .zh{font-size:46px}
+  #setup{padding:34px 15px 70px}
+  .panel{padding:19px;border-radius:16px}
+  .row2{grid-template-columns:1fr}
+  #feed{padding:18px 14px 30px}
+  .narr{padding:20px;font-size:16px;line-height:1.95}
+  header .ttl{font-size:15px;max-width:30vw}
+  .d10{width:150px;height:150px}.d10 .num{font-size:56px}
+  .dock{margin:0 -14px;padding:12px 14px 16px}
+}
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <div class="brand">
+    <div class="zh">安科</div>
+    <div class="jp">あ ん こ ス レ</div>
+    <div class="sub">
+      主持人写剧情、抛出 <b>10 个走向</b>，由 <b>1D10</b> 决定命运。<br>
+      路上凡是拿不准的事，全都<b>当场掷骰</b>——判定、好感、暗骰，一个不少。
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>剧本设定</h2>
+    <div class="chips" id="presets"></div>
+    <label class="f">
+      <span class="lb"><span>标题</span></span>
+      <input class="inp" id="f-title" placeholder="给这篇安科起个名字">
+    </label>
+    <label class="f">
+      <span class="lb"><span>前提 / 开局设定</span><span class="hint">写得越具体，主持人越好发挥</span></span>
+      <textarea class="inp" id="f-premise" rows="5" placeholder="例：萌百娘升入初中，进入新学校的第一天。轻松校园喜剧，日常里偶尔混进一点超展开。"></textarea>
+    </label>
+    <div class="row2">
+      <label class="f" style="margin-bottom:0">
+        <span class="lb"><span>混沌度</span><span class="hint" id="lb-chaos">3 · 平衡</span></span>
+        <input type="range" id="f-chaos" min="1" max="5" step="1" value="3">
+      </label>
+      <label class="f" style="margin-bottom:0">
+        <span class="lb"><span>正文长度</span></span>
+        <div class="seg" id="f-len">
+          <button data-v="short">短</button><button data-v="mid" class="on">中</button><button data-v="long">长</button>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>模型 / API</h2>
+    <div class="mode" id="modebox"></div>
+    <label class="f">
+      <span class="lb"><span id="lb-key">OpenRouter API Key</span><span class="hint">存在本机浏览器，不会上传到别处</span></span>
+      <input class="inp" id="f-key" type="password" placeholder="sk-or-v1-...">
+    </label>
+    <label class="f">
+      <span class="lb"><span>模型</span><span class="hint" id="lb-model">载入中…</span></span>
+      <input class="inp" id="f-model" list="modellist" placeholder="~google/gemini-flash-latest">
+      <datalist id="modellist"></datalist>
+    </label>
+    <div class="chips" id="modelchips"></div>
+    <details class="adv">
+      <summary>进阶选项</summary>
+      <div class="body">
+        <div class="row2">
+          <label class="f">
+            <span class="lb"><span>温度</span><span class="hint" id="lb-temp">1.00</span></span>
+            <input type="range" id="f-temp" min="0" max="2" step="0.05" value="1">
+          </label>
+          <label class="f">
+            <span class="lb"><span>完整保留的回合数</span><span class="hint" id="lb-mem">3</span></span>
+            <input type="range" id="f-mem" min="1" max="12" step="1" value="3">
+          </label>
+        </div>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-chargen" checked><span class="track"></span>
+          <span style="font-size:13.5px"><b style="color:var(--gold)">开局骰</b>：开场先摇世界观与主角八项属性，之后属性会挂进判定</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-bigroll" checked><span class="track"></span>
+          <span style="font-size:13.5px"><b style="color:var(--gold)">大判定走掷骰页面</b>：导游标记为关键的判定（如「同桌是怎样的人」）弹出掷骰动画；也可以自己点 ★ 标记</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-bigtables"><span class="track"></span>
+          <span style="font-size:13.5px">连带把<b>所有</b> D10表 / 极性 都算成大判定（会弹得比较频繁）</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-thrift" checked><span class="track"></span>
+          <span style="font-size:13.5px"><b style="color:var(--green)">省钱模式</b>：关掉模型的「思考」过程。实测省约 2/3 的钱，正文长度和质量没差别</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-sepopts" checked><span class="track"></span>
+          <span style="font-size:13.5px"><b style="color:var(--pink2)">走向单独生成</b>：10 个走向另开一次调用，并列出已用过的走向避重（治重复感）</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-fast"><span class="track"></span>
+          <span style="font-size:13.5px"><b style="color:var(--cyan)">⚡ 快速模式</b>：跳过掷骰动画，直接出结果</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-cheat"><span class="track"></span>
+          <span style="font-size:13.5px"><b style="color:var(--purple)">作弊模式</b>：默认一切听骰子的；开了可以改任意判定的点数再重写本回合</span>
+        </label>
+        <label class="f" style="margin-top:4px">
+          <span class="lb"><span>意外事件池</span><span class="hint">一行一条，每回合 1D100 ≥85 时随机抽一条塞进剧情</span></span>
+          <textarea class="inp" id="f-pool" rows="3" placeholder="停电了&#10;有人在楼下大喊主角的名字&#10;手机收到一条没有发件人的短信"></textarea>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-plan" checked><span class="track"></span>
+          <span style="font-size:13.5px"><b style="color:var(--gold)">判定阶段</b>：先声明判定再摇骰，模型无法挑点数（每回合两次调用）</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-duel" checked><span class="track"></span>
+          <span style="font-size:13.5px">启用<b style="color:var(--purple)">言论交锋</b>（拔河式优势推进）</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-anka" checked><span class="track"></span>
+          <span style="font-size:13.5px">允许<b style="color:var(--green)">安价</b>：可以放弃掷骰，直接指定走向</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-status" checked><span class="track"></span>
+          <span style="font-size:13.5px">显示<b style="color:var(--gold)">状态栏</b></span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="f-sound" checked><span class="track"></span>
+          <span style="font-size:13.5px">掷骰音效</span>
+        </label>
+      </div>
+    </details>
+  </div>
+
+  <button class="btn primary go" id="btn-start">开始安科</button>
+  <div id="resume-wrap"></div>
+  <div class="foot">
+    安科（あんこスレ）起源于日本 AA 漫画：作者自设约 10 个剧情走向，再用骰子决定采用哪一个。<br>
+    所有骰点由 <code style="font-family:var(--mono);color:var(--tx2)">crypto.getRandomValues</code> 生成，主持人无法干预。
+  </div>
+</div>
+
+<div id="game">
+  <header>
+    <div class="ttl" id="g-title">未命名安科</div>
+    <div class="meta">
+      <span class="tag" id="g-turn">第 0 回</span>
+      <span class="tag" id="g-model">—</span>
+      <span class="tag" id="g-cost">$0.0000</span>
+    </div>
+    <div class="sp"></div>
+    <div class="hbtns">
+      <button class="btn ghost sm" id="btn-fast" title="快速模式：跳过掷骰动画">⚡</button>
+      <button class="btn ghost sm" id="btn-ledger" title="好感度 / 线索">📖</button>
+      <button class="btn ghost sm" id="btn-settings" title="设置">⚙</button>
+      <button class="btn ghost sm" id="btn-export">导出</button>
+      <button class="btn ghost sm" id="btn-new">新开</button>
+    </div>
+  </header>
+  <div id="feed"></div>
+</div>
+
+<div id="dice">
+  <div class="cap" id="d-cap">1D10</div>
+  <div class="d10" id="d-shape">
+    <svg viewBox="0 0 100 100">
+      <defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#ff8fbe"/><stop offset="52%" stop-color="#e0559a"/>
+        <stop offset="100%" stop-color="#9d7bff"/></linearGradient></defs>
+      <polygon points="50,3 92,32 76,88 24,88 8,32" fill="url(#dg)" stroke="#fff" stroke-width="1.6" stroke-opacity=".55"/>
+      <polygon points="50,3 76,88 24,88" fill="#fff" fill-opacity=".1"/>
+      <polygon points="50,3 92,32 76,88" fill="#000" fill-opacity=".12"/>
+    </svg>
+    <div class="num" id="d-num">?</div>
+  </div>
+  <div class="res" id="d-res"></div>
+  <div class="dopts" id="d-opts"></div>
+</div>
+
+<div class="modal" id="m-set"><div class="box">
+  <h2>设置 <button class="x" data-close>×</button></h2>
+  <div class="note">改动会从下一回合开始生效，已经写好的剧情不受影响。</div>
+  <label class="f"><span class="lb"><span>OpenRouter API Key</span></span>
+    <input class="inp" id="s-key" type="password"></label>
+  <label class="f"><span class="lb"><span>模型</span></span>
+    <input class="inp" id="s-model" list="modellist"></label>
+  <div class="row2">
+    <label class="f"><span class="lb"><span>混沌度</span><span class="hint" id="s-lb-chaos">3</span></span>
+      <input type="range" id="s-chaos" min="1" max="5" step="1"></label>
+    <label class="f"><span class="lb"><span>温度</span><span class="hint" id="s-lb-temp">1.00</span></span>
+      <input type="range" id="s-temp" min="0" max="2" step="0.05"></label>
+  </div>
+  <label class="f"><span class="lb"><span>正文长度</span></span>
+    <div class="seg" id="s-len"><button data-v="short">短</button><button data-v="mid">中</button><button data-v="long">长</button></div></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-bigroll"><span class="track"></span>
+    <span style="font-size:13.5px">大判定走掷骰页面</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-bigtables"><span class="track"></span>
+    <span style="font-size:13.5px">所有 D10表 / 极性 都算大判定</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-thrift"><span class="track"></span>
+    <span style="font-size:13.5px">省钱模式（关闭模型思考）</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-sepopts"><span class="track"></span>
+    <span style="font-size:13.5px">走向单独生成（治重复感）</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-fast"><span class="track"></span>
+    <span style="font-size:13.5px">⚡ 快速模式（跳过掷骰动画，直接出结果）</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-cheat"><span class="track"></span>
+    <span style="font-size:13.5px">作弊模式（可改判定点数并重写）</span></label>
+  <label class="f" style="margin-top:4px">
+    <span class="lb"><span>意外事件池</span><span class="hint">一行一条</span></span>
+    <textarea class="inp" id="s-pool" rows="3"></textarea>
+  </label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-plan"><span class="track"></span>
+    <span style="font-size:13.5px">判定阶段（两次调用）</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-duel"><span class="track"></span>
+    <span style="font-size:13.5px">言论交锋</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-anka"><span class="track"></span>
+    <span style="font-size:13.5px">允许安价</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-status"><span class="track"></span>
+    <span style="font-size:13.5px">显示状态栏</span></label>
+  <label class="switch"><input type="checkbox" id="s-sound"><span class="track"></span>
+    <span style="font-size:13.5px">掷骰音效</span></label>
+  <details class="adv" style="margin-top:18px"><summary>剧本设定（当前局）</summary><div class="body">
+    <label class="f"><span class="lb"><span>标题</span></span><input class="inp" id="s-title"></label>
+    <label class="f" style="margin-bottom:0"><span class="lb"><span>前提</span></span>
+      <textarea class="inp" id="s-premise" rows="4"></textarea></label>
+  </div></details>
+  <div class="mfoot">
+    <button class="btn danger" id="s-wipe">清除存档与 Key</button>
+    <span class="sp"></span>
+    <button class="btn" data-close>取消</button>
+    <button class="btn primary" id="s-save">保存</button>
+  </div>
+</div></div>
+
+<div class="modal" id="m-led"><div class="box">
+  <h2>好感度 / 线索 <button class="x" data-close2>×</button></h2>
+  <div id="led-body"></div>
+  <div class="mfoot"><span class="sp"></span><button class="btn" data-close2>关闭</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   安科 Anko Player
+   模型现场生成剧情与走向；所有骰点由 crypto 决定，主持人无法干预。
+   ============================================================ */
+
+const API = "https://openrouter.ai/api/v1";
+
+/* 这个页面是公开托管的，所以**页面里不放任何 key**。
+   默认请求打到自己的 Cloudflare Worker，key 只存在 Worker 的 secret 里，
+   浏览器读不到、git 历史里也没有。部署 proxy/ 之后把地址填到下面。
+   访客也可以在设置里填自己的 OpenRouter key —— 那样直连、模型随便挑、费用走他们自己。 */
+const PROXY_URL    = "";                            // 例："https://anko-proxy.你的账号.workers.dev"
+const PROXY_MODEL  = "~google/gemini-flash-latest"; // 代理端白名单里的模型
+const hasProxy = () => !!PROXY_URL;
+const viaProxy = () => hasProxy() && !(cfg.key || "").trim();
+
+const SAVE = "anko.save.v3", CFGK = "anko.cfg.v3";
+
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+/* ---- 真随机（拒绝采样，无模偏） ---- */
+function roll(sides){
+  const lim = Math.floor(4294967296 / sides) * sides;
+  const a = new Uint32Array(1);
+  do { crypto.getRandomValues(a); } while (a[0] >= lim);
+  return (a[0] % sides) + 1;
+}
+
+const LS = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+
+const PRESETS = [
+  { n:"萌百娘上初中", t:"萌百娘的初中生活",
+    p:"萌娘百科的看板娘「萌百娘」升入初中，今天是进入新学校的第一天。她的同桌会是谁呢……？\n轻松向校园日常喜剧，偶尔混进一点点超展开。" },
+  { n:"异世界社畜", t:"加班到死的我在异世界当上了勇者",
+    p:"连续加班三个月后猝死的社畜，睁眼发现自己站在一片陌生的草原上，手里只有一把生锈的短剑和一张写着「勇者契约（试用期三个月）」的羊皮纸。\n吐槽向异世界喜剧。" },
+  { n:"幻想乡挑战者", t:"某武术家似乎打算在幻想乡挑战强者们的样子",
+    p:"一名坚信「武术能打败一切」的地球格斗家莫名其妙掉进了幻想乡。他决定按照自己的规矩，挑战这里的所有强者。\n热血 + 荒诞，战斗描写要有分量。" },
+  { n:"末日第一天", t:"便利店末日生存日记",
+    p:"丧尸爆发的第一天清晨，你在自家便利店的收银台后面醒来。卷帘门半开，货架上还剩三包泡面、两瓶矿泉水和一整排关东煮。\n生存向，资源和风险都要真实可感。" },
+  { n:"扫地弟子", t:"青云宗扫地弟子修真录",
+    p:"你是青云宗最底层的扫地外门弟子，入门三年还没学会一个像样的法术。今天打扫藏经阁时，你手里的扫把突然开口说话了。\n仙侠，节奏明快，机缘与危机并存。" },
+  { n:"昭和侦探", t:"昭和怪奇事件簿",
+    p:"昭和三十年的东京，你是一名穷困潦倒的私家侦探。深夜，一位穿着丧服和服的女子推开了事务所的门，说她要委托你——找回自己的影子。\n昭和怪奇推理，气氛阴郁潮湿。" },
+  { n:"穿越者互殴", t:"什么叫两个穿越者掉进了同一个世界",
+    p:"你和你最痛恨的宿敌，在同一场事故里一起穿越到了一个平平无奇的现代都市。你们谁也回不去，还被分到了同一间病房。\n互相拆台的双主角喜剧，嘴仗要打得凶。" },
+  { n:"三国乱入", t:"我在三国开外卖",
+    p:"你带着一台还剩 12% 电量的手机穿越到了建安五年的许都，手机里唯一还能用的 App 是外卖平台的骑手端。\n历史 + 现代梗，玩梗要密。" }
+];
+
+const RECO = [
+  { id:"~google/gemini-flash-latest",        n:"Gemini Flash",  d:"默认 · 内置额度唯一可用" },
+  { id:"~deepseek/deepseek-v4-flash-latest", n:"DeepSeek Flash",d:"极省 · 中文味正" },
+  { id:"~z-ai/glm-latest",                   n:"GLM",           d:"国产强模型" },
+  { id:"~anthropic/claude-sonnet-latest",    n:"Claude Sonnet", d:"文笔最好" },
+  { id:"~x-ai/grok-latest",                  n:"Grok",          d:"敢写" },
+  { id:"~moonshotai/kimi-latest",            n:"Kimi",          d:"长上下文" },
+  { id:"~google/gemini-pro-latest",          n:"Gemini Pro",    d:"更强的 Gemini" },
+  { id:"~anthropic/claude-opus-latest",      n:"Claude Opus",   d:"顶配 · 贵" }
+];
+
+const CHAOS_LB = ["","1 · 写实","2 · 克制","3 · 平衡","4 · 放飞","5 · 完全失控"];
+const CHAOS_TXT = {
+  1:"选项应当贴近现实、合乎逻辑，以细腻的日常与人际张力取胜。最多允许一个轻微的意外。",
+  2:"大部分选项合理可信，安排 1～2 个稍微跳脱的意外走向。",
+  3:"平衡：日常、意外、荒诞大致各占三分之一。既有稳妥选择，也有能把剧情掀翻的选项。",
+  4:"大胆放飞：大量超展开、突发事件、玩梗与吐槽，只留少数几个正常选项。",
+  5:"彻底失控：什么都可能发生——打破第四面墙、乱入其他作品、剧情类型突然转向、时空错乱。正常选项最多一个。"
+};
+const LEN_TXT = { short:"约 150～220 字", mid:"约 300～450 字", long:"约 550～800 字" };
+
+/* 台账用的角色名：剥掉模型可能加上的修饰与后缀，避免同一角色分裂成多条 */
+function cleanName(s){
+  return String(s).trim()
+    .replace(/^[的地得\s]+/,"")
+    .replace(/[的之]?(初次|首次|当前|目前)?(好感度?|印象|评价)$/,"")
+    .replace(/[「」『』《》"'“”]/g,"")
+    .replace(/[的]$/,"")
+    .trim() || String(s).trim();
+}
+
+/* [好感] 只该用于「角色甲 对 角色乙」，结果是 -3～+3 的关系值。
+   模型常拿它去量「某人对某事的警惕程度（0为…100为…）」——那是 0-100 的量表，
+   套进 -3～+3 会得出毫无意义的数字，还会往好感台账里塞进一本书之类的东西。
+   这里就地识别并改判成 [光谱]（能抠出两端就用两端）或普通 [D100]。 */
+function affMisuse(label){
+  const m = label.match(/^(.+?)\s*(?:对|→|->)\s*(.+)$/);
+  if(!m) return true;                                   // 连「对」都没有
+  if(/[0-9０-９]\s*为/.test(label)) return true;          // 「0为…100为…」是量表写法
+  const b = m[2].trim();
+  if(/(程度|感觉|态度|评价|指数|意愿|倾向|反应|印象值)$/.test(b)) return true;
+  if(b.length > 12) return true;                        // 角色名不会这么长
+  return false;
+}
+function scalePoles(s){
+  const lo = s.match(/[0０]\s*为\s*[「『"'“”]?([^，,、）)」』"'“”]+)/);
+  const hi = s.match(/(?:100|１００)\s*为\s*[「『"'“”]?([^，,、）)」』"'“”]+)/);
+  return (lo && hi) ? [lo[1].trim(), hi[1].trim()] : null;
+}
+
+/* 好感度换算表 */
+function affMap(raw){
+  if(raw<=15) return -3; if(raw<=30) return -2; if(raw<=45) return -1;
+  if(raw<=55) return 0;  if(raw<=70) return 1;  if(raw<=85) return 2;
+  return 3;
+}
+
+let cfg = { key:"", model:"~google/gemini-flash-latest", title:"", premise:"",
+  chaos:3, len:"mid", temp:1, mem:3, plan:true, duel:true, anka:true, status:true, sound:true,
+  chargen:true, cheat:false, bigroll:true, bigTables:false, fast:false, sepopts:true, thrift:true, pool:"" };
+let game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null };
+let busy = false, ctrl = null;
+
+const saveCfg  = () => LS.set(CFGK, JSON.stringify(cfg));
+const saveGame = () => LS.set(SAVE, JSON.stringify(game));
+function loadCfg(){
+  try{ Object.assign(cfg, JSON.parse(LS.get(CFGK)||"{}")); }catch(e){}
+  if(typeof cfg.key !== "string") cfg.key = "";
+}
+function loadGame(){
+  try{ const g = JSON.parse(LS.get(SAVE)||"null"); if(g && g.turns && g.turns.length) return g; }catch(e){}
+  return null;
+}
+
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function rich(s){
+  return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")
+    .replace(/(?<!\*)\*(?!\s)([^*\n]+?)\*(?!\*)/g,"<em>$1</em>")
+    .replace(/(【[^】\n]{1,26}】)/g,'<span class="sp">$1</span>');
+}
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("on"),2100); }
+const isQ = s => /[？?]{3,}/.test(s);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+let actx=null;
+function beep(f,d,v,t){ if(!cfg.sound) return;
+  try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=t||"triangle"; o.frequency.value=f;
+    g.gain.setValueAtTime(v,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+d);
+    o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime+d);
+  }catch(e){} }
+const tick = () => beep(180+Math.random()*260,.045,.05,"square");
+const chime= () => { beep(660,.16,.09); setTimeout(()=>beep(880,.3,.08),90); };
+const clack= () => beep(300+Math.random()*140,.05,.045,"square");
+
+/* ============================================================
+   判定系统
+   ============================================================ */
+const KIND_LB = { d100:"判定", roll:"骰", attr:"属性", polar:"极性", spectrum:"光谱", table:"D10表",
+                  tier:"分档", stat:"检定", aff:"好感", hidden:"暗骰" };
+
+/* 骰式：1D70+30 / D100 / 2D6-1 */
+function parseSpec(s){
+  const m = String(s).replace(/\s/g,"").match(/^(\d*)[dD](\d+)([+＋\-－−]\d+)?$/);
+  if(!m) return null;
+  const b = m[3] ? parseInt(m[3].replace(/[＋]/g,"+").replace(/[－−]/g,"-"),10) : 0;
+  return { n: Math.max(1,Math.min(10, +(m[1]||1))), faces: Math.max(2,Math.min(1000, +m[2])), bonus: b };
+}
+function rollSpec(sp){
+  const parts = [];
+  for(let i=0;i<sp.n;i++) parts.push(roll(sp.faces));
+  const raw = parts.reduce((a,b)=>a+b,0);
+  return { parts, raw, total: raw + sp.bonus };
+}
+/* 选项切分：分隔符按优先级选。「、」在中文选项内部太常见
+   （「带着星星眼、不太好惹的金发大波妹」），只有没有更明确的分隔符时才用它。 */
+function splitOpts(inner){
+  const sp = /[｜|]/.test(inner) ? /[｜|]/
+           : inner.indexOf("/")>=0 ? /\//
+           : /[、·]/.test(inner) ? /[、·]/ : null;
+  return (sp ? inner.split(sp) : [inner])
+    .map(x=>x.trim().replace(/^[—\-]+|[—\-]+$/g,"").replace(/^\d+\s*[.、．)]\s*/,""))
+    .filter(Boolean);
+}
+/* 从一段文本里抠出最外层《…》。选项内部可能嵌书名号，所以贪婪到最后一个 》 */
+function grabAngle(s){
+  const m = s.match(/《([\s\S]*)》/) || s.match(/《([\s\S]*)$/);
+  return m ? m[1] : null;
+}
+
+/* D10表：把 N 个选项均匀铺到 1..faces-1 上（第 faces 面固定留给 ？？？？）。
+   给满 9 个就是一面一个选项，给 3 个就是 1-3/4-6/7-9。 */
+function tableIndex(c){
+  const n = ((c && c.opts) || []).length;
+  if(!n) return -1;
+  const span = Math.max(1, c.spec.faces - 1);
+  return Math.min(n-1, Math.floor((c.raw-1) * n / span));
+}
+function tableRanges(c){
+  const list = (c && c.opts) || [];
+  if(!list.length) return [];                    // 没有选项就没有区间，别再往下算
+  const span = Math.max(1, c.spec.faces - 1), n = list.length;
+  const out = list.map(t=>({ lo:null, hi:null, text:t }));
+  for(let v=1; v<=span; v++){
+    const k = Math.min(n-1, Math.floor((v-1) * n / span));
+    if(out[k].lo === null) out[k].lo = v;
+    out[k].hi = v;
+  }
+  return out.filter(x=>x.lo !== null);
+}
+const rangeTag = r => r.lo===r.hi ? String(r.lo) : r.lo+"-"+r.hi;
+
+/* 光谱描述词。
+   端点常常是「微毫无损」「应声断裂」这种绝对化说法，直接粘前缀会得到
+   「略偏微毫无损」这种既不通顺、又把中间值读成极值的结果。
+   所以端点一律加「」当标签引用，并把百分位一起写出来。 */
+function spectrumWord(v,a,b){
+  const q = s => "「"+s+"」";
+  if(v<=10) return q(a)+"到极致（"+v+"/100）";
+  if(v<=30) return "明显偏"+q(a)+"（"+v+"/100）";
+  if(v<=44) return "略偏"+q(a)+"（"+v+"/100）";
+  if(v<=56) return "正卡在两者中间（"+v+"/100）";
+  if(v<=70) return "略偏"+q(b)+"（"+v+"/100）";
+  if(v<=90) return "明显偏"+q(b)+"（"+v+"/100）";
+  return q(b)+"到极致（"+v+"/100）";
+}
+
+/* 解析判定申请 */
+function parseChecks(txt, limit){
+  const out = [];
+  txt.split("\n").forEach(line=>{
+    const l = line.trim();
+    if(!l || /[=＝]{2,}/.test(l)) return;
+    // 行首要容忍模型的各种修饰：项目符号、引用号、markdown 加粗、编号。
+    // 对话一长模型就爱加这些，以前一加就整行解析不出来，判定会静默消失。
+    const m = l.match(/^[\s\-*>#•·—]*\d*\s*[.、．)]?\s*\**\s*[\[【]\s*([^\]】]{1,16})\s*[\]】]\**\s*[:：]?\s*(.+)$/);
+    if(!m) return;
+    let tag = m[1].replace(/\*/g,"").trim();
+    const big = /[!！]/.test(tag);          // [D10表!] —— 导游标记的大判定
+    tag = tag.replace(/[!！]/g,"").trim();
+    let rest = m[2].trim().replace(/\*\*/g,"").replace(/\s*\*+\s*$/,"").trim();
+
+    // 各段的书写顺序不固定，所以逐个「就地摘除」，不能靠行尾锚定
+    // 难度
+    let diff = null;
+    const dm = rest.match(/难度\s*(\d+)/);
+    if(dm){ diff = +dm[1]; rest = (rest.slice(0,dm.index)+rest.slice(dm.index+dm[0].length)).trim(); }
+
+    // 选项：《A｜B｜C》 或 《贫瘠——丰满》
+    // 两个坑：分档选项内部含有 ">"，所以字符类不能排除它；
+    // 选项内部还可能嵌书名号（「能弹奏《欢乐颂》的电子琴」），
+    // 所以要贪婪匹配到最后一个 》，取最外层那一对。
+    let opts = [], poles = null, angleRaw = null;
+    const om = rest.match(/《([\s\S]*)》/) || rest.match(/<([\s\S]*)>/)
+            || rest.match(/《([\s\S]*)$/);   // 模型把结尾截断了也要能救回来
+    if(om) angleRaw = om[1];
+    if(om){
+      const inner = om[1].trim();
+      const dash = inner.match(/^(.+?)\s*[—－\-]{2,}\s*(.+)$/);
+      if(dash) poles = [dash[1].trim(), dash[2].trim()];
+      opts = splitOpts(inner);
+      rest = (rest.slice(0,om.index)+rest.slice(om.index+om[0].length)).trim();
+    }
+
+    // 加值：(+30 愤恨, -20 临危不乱)。只摘除真的解析出加值的括号组，
+    // 免得把「扫把（书灵）」这种当成加值给吃掉。
+    const mods = [];
+    const paren = /[（(]([^）)]*)[）)]/g;
+    let pm, hit = null;
+    while((pm = paren.exec(rest))){
+      const got = [];
+      pm[1].split(/[,，、;；]/).forEach(p=>{
+        const g = p.trim().match(/^([+＋\-－−]\s*\d+)\s*(.*)$/);
+        if(g) got.push({ v: parseInt(g[1].replace(/[＋]/g,"+").replace(/[－−]/g,"-").replace(/\s/g,""),10),
+                         why: g[2].trim() });
+      });
+      if(got.length){ got.forEach(x=>mods.push(x)); hit = pm; break; }
+    }
+    if(hit) rest = (rest.slice(0,hit.index)+rest.slice(hit.index+hit[0].length)).trim();
+
+    const label = rest.replace(/[:：]\s*$/,"").trim();
+    if(!label) return;
+
+    const c = { label, mods, opts, spec:null, diff, big };
+    // [属性] 观察力 1D70+30 —— 骰式写在名称后面
+    if(/^属性/.test(tag)){
+      const tk = label.split(/\s+/), sp = tk.map(parseSpec).filter(Boolean);
+      if(sp.length){
+        c.kind="attr"; c.spec=sp[sp.length-1];
+        c.label = tk.filter(x=>!parseSpec(x)).join(" ").trim() || "属性";
+        out.push(c); return;
+      }
+    }
+    const specFromTag = parseSpec(tag.replace(/^骰\s*/,""));
+    if(/^骰/.test(tag) && specFromTag){ c.kind="roll"; c.spec=specFromTag; }
+    else if(specFromTag && /^\d*[dD]\d+/.test(tag)){ c.kind = specFromTag.faces===100 ? "d100" : "roll"; c.spec=specFromTag; }
+    else if(/极性/.test(tag)) c.kind="polar";
+    else if(/光谱|谱/.test(tag)) c.kind="spectrum";
+    else if(/表/.test(tag)) c.kind="table";
+    else if(/分档|档/.test(tag)) c.kind="tier";
+    else if(/检定/.test(tag)) c.kind="stat";
+    else if(/好感/.test(tag)) c.kind="aff";
+    else if(/暗骰|暗/.test(tag)) c.kind="hidden";
+    else c.kind="d100";
+
+    // 拿 [好感] 去量「对某事的XX程度」的，就地改判成量表
+    if(c.kind==="aff" && affMisuse(c.label)){
+      const p = scalePoles(c.label) || (poles && poles.length===2 ? poles : null);
+      try{ console.warn("[安科] [好感] 用错了（应为「甲对乙」两个角色），改判为 "
+        + (p?"[光谱]":"[D100]") + "：", c.label); }catch(e){}
+      if(p){ c.kind="spectrum"; poles=p; c.label=c.label.replace(/[（(][^）)]*[）)]\s*$/,"").trim()||c.label; }
+      else c.kind="d100";
+    }
+    if(c.kind==="spectrum"){ if(!poles) { if(opts.length>=2) poles=[opts[0],opts[1]]; else return; } c.poles=poles; }
+    // 选项没解析出来就只能降级成普通判定，但要吭一声——
+    // 之前正是这种静默降级把「选项里嵌书名号」的解析 bug 藏了很久
+    if((c.kind==="polar" || c.kind==="table") && opts.length<2){
+      try{ console.warn("[安科] 选项解析失败，降级为 D100：", tag, "|", rest, "| 解析出", opts); }catch(e){}
+      c.kind = "d100";
+    }
+    if(c.kind==="tier"){
+      c.tiers = opts.map(o=>{ const t=o.match(/^[>＞≥]\s*(\d+)\s*(.+)$/); return t?{at:+t[1],txt:t[2].trim()}:null; })
+                    .filter(Boolean).sort((a,b)=>b.at-a.at);
+      if(!c.tiers.length) c.kind="d100";
+    }
+    if(c.kind==="stat"){
+      // label 形如「感知」；用人物卡里的属性值
+      const key = Object.keys((game.sheet&&game.sheet.attrs)||{}).find(k=>c.label.indexOf(k)>=0);
+      c.stat = key || null;
+      c.statVal = key ? game.sheet.attrs[key] : 0;
+      if(!c.diff) c.diff = 100;
+    }
+    // 《》里的东西只有「用选项的类型」才是选项。其它类型（判定/好感/检定…）
+    // 那多半是书名或引用（「能否读懂《人间失格》」），得还回标签里去，不能吞掉。
+    if(angleRaw && ["table","polar","spectrum","tier"].indexOf(c.kind) < 0){
+      c.label = (c.label + "《" + angleRaw + "》").replace(/\s+/g," ").trim();
+      c.opts = [];
+    }
+    if(!c.spec) c.spec = { n:1, faces: c.kind==="table" ? 10 : 100, bonus:0 };
+    out.push(c);
+  });
+  return out.slice(0, limit || 6);
+}
+
+/* 摇一个判定。forcedRaw 用于作弊模式下直接指定骰面点数 */
+function resolveCheck(c, forcedRaw){
+  const sum = c.mods.reduce((a,b)=>a+b.v,0);
+  const r = (forcedRaw!=null && isFinite(forcedRaw))
+    ? { parts:[forcedRaw], raw:forcedRaw, total: forcedRaw + c.spec.bonus }
+    : rollSpec(c.spec);
+  c.parts = r.parts; c.raw = r.raw;
+  c.total = r.total + sum + (c.kind==="stat" ? (c.statVal||0) : 0);
+  const critRange = Math.max(1, Math.round(c.spec.faces*0.05));   // d100→5
+
+  if(c.kind==="table"){
+    c.total = c.raw;
+    if(c.raw===c.spec.faces){ c.special=true; c.crit=true; c.outcome="？？？？（自由发挥）"; }
+    else c.outcome = c.opts[tableIndex(c)] || "—";
+    return c;
+  }
+  // 大成功/大失败只对「成不成功」有意义的判定生效。
+  // 身高、人数、光谱位置这类骰出极值只是极值，不是「大成功」。
+  if(["d100","hidden","stat","aff"].indexOf(c.kind) >= 0){
+    if(c.raw >= c.spec.faces - critRange + 1) c.crit = true;
+    if(c.raw <= critRange) c.fumble = true;
+  }
+
+  if(c.kind==="polar"){
+    c.outcome = c.raw <= c.spec.faces/2 ? c.opts[0] : c.opts[1];
+    return c;
+  }
+  if(c.kind==="spectrum"){
+    c.pct = Math.max(0, Math.min(100, Math.round(c.total/c.spec.faces*100)));
+    c.outcome = spectrumWord(c.pct, c.poles[0], c.poles[1]);
+    return c;
+  }
+  if(c.kind==="tier"){
+    const hit = c.tiers.find(t=>c.total>t.at);
+    c.outcome = hit ? hit.txt : "未达到任何档位";
+    return c;
+  }
+  if(c.kind==="stat"){
+    c.outcome = c.total >= c.diff ? "成功" : "失败";
+    if(c.crit) c.outcome = "大成功"; if(c.fumble) c.outcome = "大失败";
+    return c;
+  }
+  if(c.kind==="aff"){
+    if(c.crit) c.lv=3; else if(c.fumble) c.lv=-3;
+    else c.lv = affMap(Math.max(16, Math.min(85, c.total)));
+    c.outcome = (c.lv>0?"+":"") + c.lv;
+    return c;
+  }
+  if(c.kind==="roll" || c.kind==="attr"){ c.outcome = String(c.total); return c; }
+  // d100 / hidden：50 为分界线
+  if(c.crit) c.outcome="大成功";
+  else if(c.fumble) c.outcome="大失败";
+  else c.outcome = c.total>=50 ? "成功" : "失败";
+  return c;
+}
+
+function checkExpr(c){
+  const sum = c.mods.reduce((a,b)=>a+b.v,0) + (c.kind==="stat" ? (c.statVal||0) : 0);
+  const sp = c.spec;
+  const head = sp.n+"D"+sp.faces + (sp.bonus ? (sp.bonus>0?"+":"")+sp.bonus : "")
+             + (sum ? (sum>0?"+":"")+sum : "");
+  const dice = sp.n>1 ? "("+c.parts.join("+")+")" : String(c.raw);
+  const tail = (sp.bonus||sum) ? dice + (sp.bonus?(sp.bonus>0?"+":"")+sp.bonus:"") + (sum?(sum>0?"+":"")+sum:"") + " = " + c.total
+                               : String(c.total);
+  return "【ROLL：" + head + " = " + tail + "】";
+}
+
+function checkHTML(c,i,editable){
+  const cls = ["chk", c.crit?"crit":"", c.fumble?"fumb":"", c.kind==="hidden"?"hide":"",
+               c.kind==="aff"?"aff":""].filter(Boolean).join(" ");
+  let mods = "";
+  const bits = [];
+  if(c.kind==="stat" && c.stat) bits.push('<s>+'+c.statVal+' '+esc(c.stat)+'</s>');
+  c.mods.forEach(m=>bits.push(m.v>=0 ? '<s>+'+m.v+' '+esc(m.why)+'</s>' : '<u>'+m.v+' '+esc(m.why)+'</u>'));
+  if(bits.length) mods = '<span class="mods">（'+bits.join("，")+'）</span>';
+
+  let opts = "";
+  if(c.kind==="table" && c.opts.length){
+    opts = '<span class="mods">　' + tableRanges(c).map(r=>rangeTag(r)+" "+esc(r.text)).join("｜")
+         + '｜'+c.spec.faces+' ？？？？</span>';
+  }
+  if(c.kind==="polar" && c.opts.length)
+    opts = '<span class="mods">　《'+esc(c.opts[0])+' ｜ '+esc(c.opts[1])+'》</span>';
+  if(c.kind==="spectrum")
+    opts = '<span class="mods">　'+esc(c.poles[0])+' —— '+esc(c.poles[1])+'</span>'
+         + (c.pct!=null ? '<span class="spec"><i style="left:'+c.pct+'%"></i></span>' : "");
+  if(c.kind==="tier")
+    opts = '<span class="mods">　'+c.tiers.slice().reverse().map(t=>">"+t.at+" "+esc(t.txt)).join("｜")+'</span>';
+  if(c.kind==="stat" && c.diff) opts += '<span class="mods">　难度 '+c.diff+'</span>';
+
+  const hidden = c.kind==="hidden" && !c.revealed;
+  const edit = editable
+    ? '<span class="ck"><button class="mini'+(c.big?" on":"")+'" data-ck-big="'+i
+      + '" title="标记为大判定：重写时会弹出掷骰页面">★</button>'
+      + '<button class="mini" data-ck-rr="'+i+'" title="重掷这一项">↻</button>'
+      + '<input class="mini-n" data-ck-in="'+i+'" type="number" min="1" max="'+c.spec.faces
+      + '" placeholder="'+c.raw+'"><button class="mini" data-ck-set="'+i+'" title="用这个点数">✓</button></span>'
+    : "";
+  // 骰出 10 之后换更离谱的选项重摇，把每一级都摊开显示
+  let chain = "";
+  (c.chain||[]).forEach(nc=>{
+    chain += '<div class="esc">'
+      + '<span class="q"><i>升级'+nc.escLevel+'</i>更离谱的一批'
+      + '<span class="mods">　'+tableRanges(nc).map(r=>rangeTag(r)+" "+esc(r.text)).join("｜")
+      + '｜'+nc.spec.faces+' ？？？？</span></span>'
+      + '<span class="eq">'+checkExpr(nc).replace(/=\s*(-?\d+)】$/, '= <b>$1</b>】')
+      + '<span class="out">'+esc(nc.outcome)+'</span></span></div>';
+  });
+
+  return '<div class="'+cls+'">'
+    + '<span class="q"><i>'+KIND_LB[c.kind]+'</i>'+esc(c.label)+mods+opts+edit+'</span>'
+    + '<span class="eq">' + (hidden ? "【暗骰：结果暂不公开】"
+        : checkExpr(c).replace(/=\s*(-?\d+)】$/, '= <b>$1</b>】'))
+    + (hidden ? "" : '<span class="out">'+esc(c.chain&&c.chain.length ? "？？？？ → 换一批重摇" : c.outcome)+'</span>')
+    + '</span>' + chain
+    + '</div>';
+}
+
+/* ============================================================
+   言论交锋
+   ============================================================ */
+function duelSide(s, leading){
+  let n = s.dice + (s.lead && leading ? 1 : 0) + (s.immune ? 1 : 0);
+  n = Math.max(1, Math.min(9, n));
+  const ds = [];
+  for(let i=0;i<n;i++){
+    let v = roll(100);
+    if(s.reward) v = Math.max(v, roll(100));
+    ds.push(v + s.bonus);
+  }
+  return { ds, sum: ds.reduce((a,b)=>a+b,0) };
+}
+function simDuel(us, them){
+  let adv = 0, r = 1; const log = [];
+  while(Math.abs(adv) < 3 && r <= 12){
+    const push = r<=3 ? 1 : 1 + Math.ceil((r-3)/3);
+    const a = duelSide(us, adv>0), b = duelSide(them, adv<0);
+    let w = "tie";
+    if(a.sum > b.sum){ adv = Math.min(3, adv+push); w="us"; }
+    else if(b.sum > a.sum){ adv = Math.max(-3, adv-push); w="them"; }
+    log.push({ r, push, a, b, w, adv });
+    r++;
+  }
+  return { log, winner: adv>=3 ? "us" : adv<=-3 ? "them" : "draw", adv };
+}
+/* 解析交锋声明 */
+function parseDuel(txt){
+  const m = txt.match(/[=＝]{2,}\s*交\s*锋\s*[=＝]{2,}([\s\S]*?)(?=[=＝]{2,}|$)/);
+  if(!m) return null;
+  const d = { topic:"", us:null, them:null };
+  m[1].split("\n").forEach(line=>{
+    const p = line.split(/[|｜]/).map(x=>x.trim());
+    if(p.length<2) return;
+    const k = p[0].replace(/[:：]/g,"").trim();
+    if(/议题|主题/.test(k)){ d.topic = p[1]; return; }
+    if(/我方|敌方|对方/.test(k)){
+      const feats = (p[4]||"") + (p[5]||"");
+      const side = { name:p[1]||"？", dice: Math.max(1,Math.min(6, parseInt(p[2],10)||3)),
+        bonus: Math.max(-30, Math.min(40, parseInt(p[3],10)||0)),
+        reward: /奖励骰/.test(feats), lead: /领先|穷追/.test(feats), immune: /免疫/.test(feats),
+        featTxt: (p[4]||"").trim() };
+      if(/我方/.test(k)) d.us = side; else d.them = side;
+    }
+  });
+  return (d.us && d.them) ? d : null;
+}
+function duelHTML(d){
+  if(!d || !d.res) return "";
+  const pos = d.res.adv;
+  let bar = '<div class="bar"><span class="nm">'+esc(d.us.name)+'</span>';
+  for(let i=-3;i<=3;i++){
+    if(i===0){ bar += '<span class="c" style="flex:0 0 2px;background:var(--line2)"></span>'; continue; }
+    const on = (i>0 && pos>=i) || (i<0 && pos<=i);
+    bar += '<span class="c '+(on ? (i>0?"us":"them") : "")+'"></span>';
+  }
+  bar += '<span class="nm">'+esc(d.them.name)+'</span></div>';
+
+  const rows = d.res.log.map(x=>{
+    const aw = x.w==="us", bw = x.w==="them";
+    return '<div class="rd"><span class="n">第'+x.r+'回</span>'
+      + '<span class="s'+(aw?" w":"")+'">'+esc(d.us.name)+' '+x.a.ds.join("+")+' = '+x.a.sum+'</span>'
+      + '<span class="s'+(bw?" w":"")+'">'+esc(d.them.name)+' '+x.b.ds.join("+")+' = '+x.b.sum+'</span>'
+      + '<span class="adv">优势 '+(x.adv>0?"+":"")+x.adv+'</span></div>';
+  }).join("");
+
+  const wn = d.res.winner==="us" ? d.us.name : d.res.winner==="them" ? d.them.name : null;
+  return '<div class="duel"><div class="dh"><span class="k">言论交锋</span>'+esc(d.topic||"")+'</div>'
+    + bar + rows
+    + '<div class="win">'+(wn ? esc(wn)+" 取得了胜利" : "势均力敌，不分胜负")+'</div></div>';
+}
+
+/* ============================================================
+   提示词
+   ============================================================ */
+function sysBase(){
+  return [
+`你是一位老练的「安科」（あんこスレ）主持人兼写手，读者称你为「导游」。`,
+`安科是起源于日本 AA 漫画的随机剧情推进形式：主持人写一段剧情，抛出 10 个候选走向，由 1D10 掷骰决定采用哪一个。`,
+`**决定权在骰子手里，不在你手里。** 凡是你拿不准、或本该由运气决定的事，一律交给骰子。`,
+``,
+`## 本篇设定`,
+`标题：${cfg.title || "（未命名）"}`,
+`前提：`,
+cfg.premise
+].join("\n");
+}
+
+/* ---------- 开局骰：世界观 + 人物卡 ---------- */
+function chargenPrompt(){
+  return [
+sysBase(),
+``,
+`## 现在是【开局骰】`,
+`安科开场的传统：在写第一个字之前，先把这个世界和主角**全部交给骰子**。`,
+`**不要写任何剧情**，只输出下面两段。`,
+``,
+`===世界===`,
+`5～7 条这个世界的基本设定，每条一行。用这些格式：`,
+`[光谱] 事项 《一端——另一端》　　例：[光谱] 这个世界的危险程度 《歌舞升平——烽烟四起》`,
+`[表] 事项 《选项一｜选项二｜选项三》　　例：[表] 超凡者的稀有度 《随处可见｜小有规模｜万里挑一》`,
+`[分档] 事项 《>30 结果甲｜>60 结果乙｜>85 结果丙》`,
+``,
+`===人物===`,
+`先用 6～8 行 [属性] 定主角的能力，格式：`,
+``,
+`[属性] 属性名 骰式`,
+``,
+`**属性名由你按本篇题材自拟**，不要套用固定模板——`,
+`没有魔法的故事就不该有「魔力」，侦探故事该是「观察力／人脉／酒量」，`,
+`武侠该是「内力／轻功／悟性」，社畜日常该是「体力／嘴皮子／PPT」。`,
+`骰式体现强度基调：天才向 1D70+30，凡人向 1D100，废柴向 1D60。`,
+`**至少要有 1～2 项用明显更低的骰式**，好让主角有真正的短板——`,
+`短板比长处有趣得多，一个低到离谱的数值能撑起整篇的笑点。`,
+``,
+`属性之后，再来 5～8 条身世与性格（这些不要用 [属性]）：`,
+`[骰 1D30+150] 身高　　[骰 1D10+10] 年龄`,
+`[光谱] 性格 《内向——外向》　　[光谱] 态度 《傲慢——谦虚》`,
+`[表] 家庭状况 《父母双全｜单亲｜寄人篱下》`,
+``,
+`要求：`,
+`- 事项要贴合本篇前提，不要照抄上面的示例。`,
+`- 属性行的名称就写属性名本身，不要加修饰。`,
+`- 只输出这两段，不要有任何其它文字。`
+].join("\n");
+}
+function parseChargen(txt){
+  const w = txt.match(/[=＝]{2,}\s*世\s*界\s*[=＝]{2,}([\s\S]*?)(?=[=＝]{2,}|$)/);
+  const p = txt.match(/[=＝]{2,}\s*人\s*物\s*[=＝]{2,}([\s\S]*?)(?=[=＝]{2,}|$)/);
+  const grab = m => m ? parseChecks(m[1], 18) : [];
+  return { world: grab(w), person: grab(p) };
+}
+/* 属性名由模型按本篇题材自拟——没有魔法的故事就不该有「魔力」这一项 */
+function sheetFrom(world, person){
+  const attrs = {}, traits = [];
+  person.forEach(c=>{
+    if(c.kind==="attr" && attrs[c.label]===undefined) attrs[c.label] = c.total;
+    else traits.push({ label:c.label, outcome:c.outcome, total:c.total });
+  });
+  return { world: world.map(c=>({label:c.label, outcome:c.outcome})), attrs, traits };
+}
+function sheetPrompt(s){
+  if(!s) return "";
+  const L = ["【本篇世界设定 —— 已由骰子定死】"];
+  s.world.forEach(w=>L.push("・"+w.label+"：" + w.outcome));
+  L.push("", "【主角人物卡 —— 已由骰子定死】");
+  const a = Object.entries(s.attrs);
+  if(a.length){
+    L.push("属性（满分约100）：" + a.map(([k,v])=>k+" "+v).join("　"));
+    const hi = a.slice().sort((x,y)=>y[1]-x[1])[0], lo = a.slice().sort((x,y)=>x[1]-y[1])[0];
+    L.push(`最强项是${hi[0]}(${hi[1]})，最弱项是${lo[0]}(${lo[1]})。`
+      + `**${lo[0]}只有 ${lo[1]}** 这件事必须在剧情里反复体现出来，它是这个角色最有戏的地方。`);
+  }
+  s.traits.forEach(t=>L.push("・"+t.label+"："+t.outcome));
+  return L.join("\n");
+}
+
+function planPrompt(){
+  return [
+sysBase(),
+game.sheet ? "\n"+sheetPrompt(game.sheet) : "",
+``,
+`## 现在是【判定阶段】`,
+`在写这一回正文之前，先声明这一回需要交给骰子决定的事。**不要写正文，只输出判定申请。**`,
+``,
+`声明 3～5 项判定，每行一项，严格使用下列格式之一：`,
+``,
+`[D100] 事项 (+30 理由, -20 理由)`,
+`　　用于「能否做到 / 成不成功」。总值 ≥50 为成功。加值理由要写成角色特质或当下处境，例如「(+40 愤恨, -20 临危不乱)」。`,
+`[极性] 事项 《选项A｜选项B》`,
+`　　二选一。低骰取 A，高骰取 B。例如「[极性] 两人谁先睁眼 《希罗｜雪》」。`,
+`[D10表] 事项 《结果一｜结果二｜结果三》`,
+`　　多选一。给几项就把 1～9 均分成几段（给 3 项就是 1-3 / 4-6 / 7-9）。`,
+`　　骰出 10（即「？？？？」）时，系统会回头找你要一批**更离谱的新选项**重摇，所以不必自己写第 10 项。`,
+`　　用于顺带一提的小事，3～4 项就够。`,
+`[好感] A对B`,
+`　　**只用于「角色甲 对 角色乙」的人际关系**，结果为 -3～+3，两人初次见面或关系剧变时才用。`,
+`　　A、B **只写角色名本身**，中间用「对」连接，不要加修饰语、状态描述或「的初次好感度」之类后缀。`,
+`　　正确：[好感] 林小满对陈雪　　错误：[好感] 惨遭折骨之痛的扫把对主角的初次好感度`,
+`　　**要衡量「某人对某件事的警惕/兴趣/抗拒程度」这类 0-100 的量表，请用 [光谱]，不要用 [好感]。**`,
+`　　　错误：[好感] 萌百娘对这本怪书的警惕程度（0为好好玩，100为立即扔掉）`,
+`　　　正确：[光谱] 萌百娘对这本怪书的态度 《觉得好好玩——想立即扔掉》`,
+`[暗骰] 事项 (+20 理由)`,
+`　　结果不向读者公开的判定，用于角色的隐藏心思、暗中的变数。`,
+`[光谱] 事项 《一端——另一端》`,
+`　　不是二选一，而是落在连续谱上的某个位置，结果会给出 0～100 的百分位。`,
+`　　**两端要写成短的、可分级的词**，例：《完好——断裂》《冷淡——热情》《平静——暴怒》。`,
+`　　不要写成「微毫无损」「应声断裂」这类已经说死的绝对句——那样骰出中间值也会被读成极端结果。`,
+`[分档] 事项 《>30 结果甲｜>60 结果乙｜>85 结果丙》`,
+`　　一次骰点对应多档结果，取所达到的最高档。例：[分档] 这次处罚 《>30 罚款｜>50 拘留｜>70 判刑》`,
+`[骰 1D30+150] 事项`,
+`　　任意骰式，用来定一个具体数值（人数、天数、距离、金额）。结果就是那个数。`,
+game.sheet && Object.keys(game.sheet.attrs).length
+  ? `[检定] 属性名 难度100 (+20 理由)
+　　用主角的人物卡属性做检定：1D100 + 该属性 + 加值，达到难度即成功。
+　　可用属性：${Object.entries(game.sheet.attrs).map(([k,v])=>k+"("+v+")").join("、")}
+　　**主角的短板属性该用就用**，别总挑长处检定——短板翻车才是好戏。`
+  : "",
+``,
+`## 大判定标记`,
+`如果某一项判定是**这一回真正的分水岭**——它的结果会直接决定剧情往哪个方向拐（例如「萌百娘的同桌是怎样的人」、`,
+`「推门进来的是谁」、「这一刀砍中了没有」）——就在类型后面加一个 \`!\`，例如 \`[D10表!]\` \`[极性!]\` \`[D100!]\`。`,
+`被标记的判定会单独弹出掷骰动画，让读者看着骰子落下。`,
+`**每回合最多标记 1 项**，宁可不标也不要滥标——满屏都是大判定就没有大判定了。`,
+``,
+`**`+"`[D10表!]`"+` 必须给满 9 个各不相同的选项**，一个骰面对应一个，不要只给三四项去分区间。`,
+`第 10 面固定是「？？？？」，系统会自动补，你不用写。这是安科的招牌形态，例如：`,
+`[D10表!] 萌百娘的同桌是怎样的人 《带着星星眼、看起来不太好惹的金发大波妹｜很想担任副班长、看起来很完美的马尾娘｜长得很漂亮、沉默而冷静的运动少女｜一头秀气白色长发的学霸｜总是手上拿着DV的财团大小姐｜班级的卫生委员｜戴着兔子发饰、正在画画的女孩子｜有个哥哥、似乎和异世界某位叔叔有关系的御宅族｜自己的妹妹》`,
+`九个选项要**互相差异极大**，和主选项一样覆盖不同方向，不能是同一类东西的九种说法。`,
+`选项之间只用「｜」分隔；选项内部要断句请用「、」，不要用「｜」。`,
+`如果这件事本来就只有两种可能（是/否、他/她），那就用 [极性!]，不要硬凑九项。`,
+``,
+`要求：`,
+`- 判定要落在**这一回真正的不确定点**上，不要为了凑数而申请。`,
+`- 至少包含一项 [D10表] 或 [极性]，让剧情有分叉。`,
+`- 每几回合安排一次 [暗骰]；有新角色登场或关系变动时安排 [好感]。`,
+cfg.duel ? `- 如果这一回会爆发一场**口舌交锋 / 争论 / 对峙**，额外附上交锋声明（可选，不必每回都有）：
+===交锋===
+议题 | 一句话说明在争什么
+我方 | 角色名 | 骰数(1-6) | 加值(0-40) | 特性关键词
+敌方 | 角色名 | 骰数(1-6) | 加值(0-40) | 特性关键词
+　　特性关键词可用：奖励骰（每骰投两次取高）、领先加骰（优势为正时多一骰）、免疫骰（多一颗不受干扰的骰）。留空表示无特性。
+　　骰数与加值要体现双方实力差距，弱势一方就该少骰、低加值。` : "",
+``,
+`只输出判定（以及可选的交锋声明），不要有任何其它文字。`
+].filter(Boolean).join("\n");
+}
+
+function writeSys(){
+  return [
+sysBase(),
+game.sheet ? "\n"+sheetPrompt(game.sheet) : "",
+``,
+`## 每回合的产出`,
+`1. **场景**：这一回的时间与地点，各一行。`,
+`2. **正文**（${LEN_TXT[cfg.len]}）：承接上一回骰子选中的走向，把它真正演出来——有场景、有对白、有细节，结尾推进到新的决策点。`,
+`3. ${cfg.status ? "**状态**：3～6 条当前状态（好感度、持有物、体力、日期、地点、隐藏进度之类），每行 `名称：值`，要随剧情真实变化。" : "（本篇不使用状态栏，略过状态段落。）"}`,
+cfg.sepopts
+  ? `4. **不要写选项**。这一回的 10 个走向会在你写完之后单独生成，你这一次只负责正文。
+　　正文结尾把局面推进到一个新的决策点就停住，不要列举可能的选择，也不要写「你会怎么做」。`
+  : `4. **选项**：恰好 10 个候选走向，编号 1～10。`,
+``,
+`## 判定结果的写法（重要）`,
+`本回合的判定已经由骰子决定完毕，结果在下方给出。你必须：`,
+`- **完全尊重骰子结果**，哪怕它荒唐、不利、或打乱你的构想。绝不能改写、淡化或绕开。`,
+`- [光谱] 给的是 0～100 的**位置**，不是成败。40～60 就是真的两边都沾一点，要写成「有损伤但还撑得住」`,
+`　这种中间状态，不许当成靠近的那一端的极值来写。只有逼近 0 或 100 才写成彻底的一边倒。`,
+`- 在正文中**用单独一行写 【判定N】**（N 是判定编号），标记这次骰点在剧情中发生的位置；系统会把骰点行渲染到那里。每项判定都要放，顺序可以和编号不同。`,
+`- 骰点行由系统渲染，你不要自己复述「1d100=66」这类数字。`,
+`- [暗骰] 的结果**不要在正文里明说**，只让它悄悄影响角色的行为与语气；可以在往后某一回再揭晓。`,
+``,
+`## 导游吐槽`,
+`每回合要另起一行、以 // 开头写 **2～4 句**导游本人的吐槽，散布在正文各处——对骰子结果的吐槽、对角色的调侃、场外解说都可以。`,
+`骰出大成功、大失败、或角色做了蠢事时尤其该来一句。要短、要毒、要有网感，例如：`,
+`// 何意味啊`,
+`// 丈 育 主 角`,
+`// 什么破事。`,
+`// 不是姐，你要寄啊`,
+``,
+cfg.sepopts ? "" : [
+`## 出选项的铁律`,
+`- 10 个选项必须**互相差异极大**：稳妥的、冒险的、社交的、暴力的、离奇的、完全跑题的。绝不能 10 个同类。`,
+`- 每个选项 10～30 字，是一个**具体的事件或行动**，不是抽象的态度。写「翻窗逃走，结果撞进隔壁社团活动室」，不要写「选择逃跑」。`,
+`- 第 10 项**固定写作**「？？？？」，不加任何解释。`,
+`- 混沌度 ${cfg.chaos}/5：${CHAOS_TXT[cfg.chaos]}`,
+`- 不要重复之前回合出现过的走向。`,
+``].join("\n"),
+`## 写作要求`,
+`- 中文，网络小说 / 轻小说笔法，画面感强，节奏明快，允许吐槽和玩梗。`,
+`- 尊重既成事实：已掷出的剧情不可推翻、不可假装没发生。`,
+`- 不要替读者做决定，不要预告哪个选项更好。`,
+``,
+`## 输出格式（严格遵守，不要有额外说明）`,
+`===场景===`,
+`（这一回的时间，一行。由你按剧情自行设定，不要照抄任何示例）`,
+`（这一回的地点，一行）`,
+`===正文===`,
+`（正文，中间穿插 【判定1】 这样的独立行，以及 // 开头的吐槽行）`,
+cfg.status ? "===状态===\n名称：值\n名称：值" : "",
+`===好感===`,
+`（可选。仅填写由这一回剧情事件引起的额外好感变化，一行一条，格式：甲→乙 +1`,
+`　**两边都必须是角色**，不要写对物品、书本、地点的「好感」；那类态度请在正文里描写，或用 [光谱] 判定。`,
+`　已经由上面 [好感] 判定摇出的数值系统会自动入账，不要在这里重复写；没有额外变化就整段省略）`,
+`===线索===`,
+`（可选。这一回获得的关键线索，一行一条；没有就整段省略）`,
+cfg.sepopts
+  ? `（到此为止。**不要写 ===选项=== 段，也不要在正文里列举任何编号选项**——走向由后续单独一次生成。）`
+  : "===选项===\n1. xxx\n…\n10. ？？？？"
+].filter(x=>x!=="").join("\n");
+}
+
+/* 选项单独生成：和正文分开，模型可以专心把 9 个方向拉开差距，
+   并且把本篇已经出现过的走向全部列出来避重 */
+function optsPrompt(narration, stats, slim){
+  const past = [];
+  storyTurns().forEach(t=>(t.options||[]).forEach(o=>{
+    if(o && !isQ(o) && past.indexOf(o)<0) past.push(o);
+  }));
+  // 重试时砍掉避重清单：几十条历史走向本身就可能把模型带跑，先保证能出 10 行
+  const recent = slim ? [] : past.slice(-70);
+  return [
+sysBase(),
+game.sheet ? "\n"+sheetPrompt(game.sheet) : "",
+``,
+`## 现在只做一件事：给出这一回的 10 个走向`,
+`不要写正文，不要解释，不要重复下面的内容。`,
+``,
+`刚刚写完的正文是：`,
+narration,
+(stats && stats.length ? "\n当前状态："+stats.map(s=>s.k+"："+s.v).join("　") : ""),
+``,
+`## 铁律`,
+`- 恰好 10 项，编号 1～10，**第 10 项固定写作「？？？？」**。`,
+`- 前 9 项必须覆盖**差异极大**的方向，至少要包含：稳妥保守的、主动冒险的、与人交涉的、`,
+`  动手来硬的、彻底离奇的、以及一个跟当前处境几乎不相干的跑题选项。`,
+`  绝不能九项都是同一类动作的九种说法。`,
+`- 每项 10～30 字，写**具体发生的事**，不是抽象态度。`,
+`  写「翻窗逃走，结果撞进隔壁社团活动室」，不要写「选择逃跑」。`,
+`- 混沌度 ${cfg.chaos}/5：${CHAOS_TXT[cfg.chaos]}`,
+recent.length ? `\n## 本篇已经出现过的走向（一项都不许重复，也不要换个说法重写）\n`
+  + recent.map(o=>"・"+o).join("\n") : "",
+``,
+`只输出 10 行，格式：`,
+`1. xxx`,
+`…`,
+`10. ？？？？`
+].filter(x=>x!=="").join("\n");
+}
+function parseOpts(txt){
+  const out = [];
+  const fw = s => s.replace(/[０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  txt.split("\n").forEach(raw=>{
+    // 和判定行一样，容忍行首的 markdown 装饰、项目符号、「选项N」前缀
+    let l = fw(raw.trim()).replace(/^[\s\-*>#•·—]+/,"").replace(/^\**/,"").replace(/^选项\s*/,"");
+    const m = l.match(/^(\d{1,2})\s*[.、．)：:]\s*(.+)$/);
+    if(!m) return;
+    const i = +m[1];
+    if(i>=1 && i<=10) out[i-1] = m[2].replace(/\*\*/g,"").replace(/\s*\*+\s*$/,"").trim();
+  });
+  return out;
+}
+
+const openUser = () => `开始这篇安科。写第 1 回：把读者拉进「${cfg.title||"这个故事"}」的开场，交代场景与主角处境，推进到第一个决策点，然后给出 10 个走向。`;
+
+function rollUser(t){
+  const L = [];
+  if(t.manual){
+    L.push(`【安价】读者放弃掷骰，直接指定了走向：`, `「${t.manual}」`, ``, `请把它演绎出来，写第 ${t.no+1} 回。`);
+  } else {
+    L.push(`【ROLL：1D10=d10(10)=${t.rolled}】`);
+    if(t.chaos){
+      L.push(`骰出 ${t.rolled} → 「？？？？」，剧情交由你自由发挥。`);
+      L.push(`追加判定【ROLL：1D2=d2(2)=${t.chaos.v}】→ **${t.chaos.label}**。`);
+      L.push(t.chaos.v===1
+        ? `请自由发挥一个**出人意料且对主角有利**的超展开：意外的援手、隐藏天赋觉醒、荒唐但奏效的巧合。要够离奇。`
+        : `请自由发挥一个**出人意料且对主角不利**的超展开：灾难性误会、最坏时机的乱入、弄巧成拙的连锁反应。要够离奇，但别直接写死主角。`);
+    } else {
+      L.push(`选中第 ${t.rolled} 项：「${t.options[t.rolled-1]}」`, ``, `请把它演绎出来，写第 ${t.no+1} 回。`);
+    }
+  }
+  L.push(``, `这是既成事实，必须照此发展。然后给出新的 10 个走向（第 10 项仍是「？？？？」）。`);
+  return L.join("\n");
+}
+
+/* 把已摇好的判定结果整理给模型 */
+function checksToPrompt(checks, duel, incident){
+  const L = ["【本回合判定结果 —— 由骰子决定，不可更改】"];
+  checks.forEach((c,i)=>{
+    const kind = { d100:"判定", polar:"极性", table:"D10表", aff:"好感", hidden:"暗骰" }[c.kind];
+    let s = `${i+1}. [${kind}] ${c.label} ${checkExpr(c)} → ${c.outcome}`;
+    if(c.crit) s += "　★大成功";
+    if(c.fumble) s += "　☠大失败";
+    if(c.chain && c.chain.length){
+      s += "\n　　骰出 "+c.spec.faces+" → ？？？？，换了一批更离谱的选项重摇：";
+      c.chain.forEach(nc=>{
+        s += "\n　　【升级"+nc.escLevel+"】" + checkExpr(nc) + " → "
+           + (nc.special ? "又是 ？？？？，继续升级" : nc.outcome);
+      });
+      s += "\n　　**最终结果以最后一行为准**，前面那些没被选中的选项不要写进正文。";
+    }
+    else if(c.kind==="table" && c.special) s += "（骰出 "+c.spec.faces+"：请自由发挥一个比上面各项都更离奇的结果）";
+    if(c.kind==="hidden") s += "（暗骰：不要在正文里明说，只让它影响角色的言行）";
+    if(c.kind==="aff") s += `（好感度变化，写入 ===好感=== 段）`;
+    L.push(s);
+  });
+  L.push("", "请在正文中用单独一行的 【判定N】 标出每次骰点发生的位置。");
+  if(duel && duel.res){
+    L.push("", "【言论交锋结果 —— 已由骰子决定】", `议题：${duel.topic}`);
+    duel.res.log.forEach(x=>{
+      L.push(`第${x.r}回合：${duel.us.name} ${x.a.sum} vs ${duel.them.name} ${x.b.sum} → `
+        + (x.w==="us"?duel.us.name+"占上风":x.w==="them"?duel.them.name+"占上风":"平手")
+        + `，当前优势 ${x.adv>0?"+":""}${x.adv}`);
+    });
+    const wn = duel.res.winner==="us" ? duel.us.name : duel.res.winner==="them" ? duel.them.name : null;
+    L.push(wn ? `最终：${wn} 取得胜利。` : "最终：势均力敌，不分胜负。");
+    L.push("请在正文中把这场交锋逐回合写出来：每一回合谁抛出了什么论点、对方如何招架。",
+      "占上风的一方该说出更有力的话。可以用 [证物] 标记亮出的关键证据。",
+      "在交锋开始的位置单独写一行 【交锋】，系统会把战况表渲染到那里。");
+  }
+  if(incident){
+    L.push("", "【意外事件 —— 骰娘说这一回有事发生】",
+      `是否有意外：【ROLL：1D100 = ${incident.gate}】→ 有（≥85 触发）`,
+      `从读者的意外事件池（共 ${incident.size} 条）中抽中：`,
+      `「${incident.pick}」`,
+      "请把这个意外**自然地织进这一回**，不要生硬插入，也不要因为它而放弃已经骰出的其它结果。");
+  }
+  return L.join("\n");
+}
+
+const storyTurns = () => game.turns.filter(t=>!t.chargen);
+const lastTurn = () => { const t = storyTurns(); return t[t.length-1]; };
+function buildMsgs(extra){
+  const m = [{role:"system", content: writeSys()}, {role:"user", content: openUser()}];
+  const ts = storyTurns();
+  const keep = Math.max(1, cfg.mem|0);
+  /* 压缩边界对齐到 BLOCK 的倍数。
+     以前是纯滑动窗口，每回合都有一个回合从「完整原文」翻成「压缩正文」，
+     等于每回合都改写历史中段，前缀缓存必然失效。对齐之后边界每 BLOCK 回合才动一次。 */
+  const BLOCK = 4;
+  const boundary = Math.max(0, Math.floor(Math.max(0, ts.length - keep) / BLOCK) * BLOCK);
+  ts.forEach((t,i)=>{
+    const full = i >= boundary;
+    m.push({ role:"assistant", content: full ? t.raw : "===正文===\n"+t.narration });
+    if(t.rolled || t.manual) m.push({ role:"user", content: rollUser(t) });
+    // 压缩区的最后一条打缓存断点：这一段每 BLOCK 回合才变一次，正好可缓存
+    if(i === boundary-1) m[m.length-1]._cache = true;
+  });
+  if(extra) m.push({ role:"user", content: extra });
+  return m;
+}
+
+/* ============================================================
+   解析正文
+   ============================================================ */
+const MK = {
+  sc: /(?:^|\n)\s*[#*\s]*[=＝]{2,}\s*场\s*景\s*[=＝]{2,}[#*\s]*/,
+  n:  /(?:^|\n)\s*[#*\s]*[=＝]{2,}\s*正\s*文\s*[=＝]{2,}[#*\s]*/,
+  st: /(?:^|\n)\s*[#*\s]*[=＝]{2,}\s*状\s*态\s*[=＝]{2,}[#*\s]*/,
+  cl: /(?:^|\n)\s*[#*\s]*[=＝]{2,}\s*线\s*索\s*[=＝]{2,}[#*\s]*/,
+  af: /(?:^|\n)\s*[#*\s]*[=＝]{2,}\s*好\s*感\s*[=＝]{2,}[#*\s]*/,
+  op: /(?:^|\n)\s*[#*\s]*[=＝]{2,}\s*选\s*项\s*[=＝]{2,}[#*\s]*/
+};
+function seg(txt, key, order){
+  const m = txt.match(MK[key]); if(!m) return "";
+  const start = m.index + m[0].length;
+  let end = txt.length;
+  order.forEach(k=>{ if(k===key) return;
+    const mm = txt.match(MK[k]); if(mm && mm.index >= start && mm.index < end) end = mm.index; });
+  return txt.slice(start, end);
+}
+function parseTurn(txt){
+  const ord = ["sc","n","st","cl","af","op"];
+  let narration = seg(txt,"n",ord);
+  let optBlock  = seg(txt,"op",ord);
+  if(!narration){
+    const li = txt.search(/(?:^|\n)\s*1\s*[.、．)]\s*\S/);
+    narration = li>=0 ? txt.slice(0,li) : txt;
+    if(!optBlock && li>=0) optBlock = txt.slice(li);
+  }
+  const scene = seg(txt,"sc",ord).split("\n").map(x=>x.trim())
+    .filter(x=>x && !/[=＝]{2,}/.test(x)).slice(0,2);
+  const stats = seg(txt,"st",ord).split("\n").map(l=>l.trim())
+    .filter(l=>l && /[:：]/.test(l) && !/[=＝]{2,}/.test(l))
+    .map(l=>{ const i=l.search(/[:：]/);
+      return { k:l.slice(0,i).replace(/^[-*·\s]+/,"").trim(), v:l.slice(i+1).trim() }; })
+    .filter(x=>x.k&&x.v).slice(0,8);
+  const clues = seg(txt,"cl",ord).split("\n").map(l=>l.trim().replace(/^[-*·\d.、）)\s]+/,""))
+    .filter(l=>l && l.length>3 && !/[=＝]{2,}/.test(l)).slice(0,4);
+  const affs = seg(txt,"af",ord).split("\n").map(l=>l.trim())
+    .map(l=>{ const m=l.match(/^(.+?)\s*(?:[→>对]|->)\s*(.+?)\s*([+＋\-－−]\s*\d+)/);
+      return m ? { a:m[1].trim(), b:m[2].trim(),
+        v: parseInt(m[3].replace(/[＋]/g,"+").replace(/[－−]/g,"-").replace(/\s/g,""),10) } : null; })
+    .filter(Boolean).slice(0,8);
+
+  const opts = [];
+  optBlock.split("\n").forEach(l=>{
+    const m = l.trim().match(/^[-*>\s]*(\d{1,2})\s*[.、．)：:]\s*(.+)$/);
+    if(!m) return;
+    const i = +m[1];
+    if(i>=1&&i<=10) opts[i-1] = m[2].replace(/\*\*/g,"").trim();
+  });
+  return { scene, narration: narration.replace(/[=＝]{2,}.*$/gm,"").trim(), stats, clues, affs, options: opts };
+}
+
+/* 正文 → HTML，插入判定块 / 吐槽 / 交锋 */
+/* 把正文扫成一个个独立的块。流式阶段靠它做增量渲染：
+   只有变化的那一块会动，已经画好的段落和判定块原地不动，所以不会闪。 */
+function narrScan(t, editable){
+  const used = new Set();
+  const blocks = [];
+  let duelDone = false;
+  t.narration.split("\n").forEach(raw=>{
+    const l = raw.trim();
+    if(!l) return;
+    // 以前这里是整行锚定的，模型把两个标记写在同一行（【判定4】【判定5】）
+    // 就一个都匹配不上，整行当普通文字渲染出去了。改成扫出行内所有标记。
+    const MARK = /[【\[]\s*判定\s*(\d{1,2})\s*[】\]]/g;
+    if(MARK.test(l)){
+      MARK.lastIndex = 0;
+      let mm;
+      while((mm = MARK.exec(l))){
+        const i = +mm[1]-1;
+        if(t.checks && t.checks[i] && !used.has(i)){ used.add(i); blocks.push(checkHTML(t.checks[i],i,editable)); }
+      }
+      const rest = l.replace(/[【\[]\s*判定\s*\d{1,2}\s*[】\]]/g,"").trim();
+      if(rest) blocks.push("<p>"+rich(rest)+"</p>");
+      return;
+    }
+    // 注意：这个标志必须是局部的。以前写在 t 上，会被 saveGame 持久化，
+    // 一旦变成 stale-true，下面的兜底就永远不触发，交锋战况表会凭空消失。
+    if(/^[【\[]?\s*交\s*锋\s*[】\]]?\s*[:：]?$/.test(l)){
+      if(t.duel && !duelDone){ blocks.push(duelHTML(t.duel)); duelDone = true; }
+      return;
+    }
+    if(/^\/\//.test(l)){ blocks.push('<div class="aside">'+esc(l.replace(/^\/\/\s*/,"// "))+'</div>'); return; }
+    blocks.push("<p>"+rich(l)+"</p>");
+  });
+  return { blocks, used, duelDone };
+}
+
+function narrHTML(t, live, editable){
+  const s = narrScan(t, editable);
+  const out = s.blocks.slice();
+  // 没被放置的判定统一补到最前
+  if(t.checks){
+    const left = t.checks.map((c,i)=>s.used.has(i)?null:checkHTML(c,i,editable)).filter(Boolean);
+    if(left.length) out.unshift(left.join(""));
+  }
+  if(t.duel && !s.duelDone) out.push(duelHTML(t.duel));
+  if(live) out.push('<span class="cursor"></span>');
+  return out.join("");
+}
+
+/* ============================================================
+   OpenRouter
+   ============================================================ */
+/* OpenRouter 上（含 Gemini、DeepSeek）prompt 缓存需要显式打 cache_control 断点，
+   不打就是 cached_tokens=0、全价重算。实测 gemini-3.6-flash 打了断点后
+   同一段 6.4k 前缀的成本从 $0.009714 降到 $0.001064。
+   断点最多 4 个，这里用 2 个：系统提示词末尾 + 稳定历史末尾。 */
+const cacheBlock = text => [{ type:"text", text:String(text), cache_control:{ type:"ephemeral" } }];
+
+async function streamChat(msgs, onText, signal, sys){
+  const out = msgs.map(m => (m && m._cache)
+    ? { role:m.role, content: cacheBlock(m.content) }
+    : { role:m.role, content:m.content });
+  if(sys) out[0] = { role:"system", content: cacheBlock(sys) };
+  else if(out[0] && out[0].role==="system") out[0] = { role:"system", content: cacheBlock(msgs[0].content) };
+
+  const proxied = viaProxy();
+  const body = { model: proxied ? PROXY_MODEL : cfg.model.trim(), messages: out,
+                 temperature: +cfg.temp, stream: true, usage: { include: true } };
+  /* Gemini Flash 这类模型默认会先「思考」一大段，而思考 token 是要计费且你看不到的。
+     实测同一段 300 字正文：默认思考占 66% 输出、$0.00602；
+     effort=minimal 思考归零、正文一样长、$0.00196 —— 便宜三分之二。
+     关掉省钱模式就不发这个字段，交回模型自己的默认行为。 */
+  if(cfg.thrift !== false) body.reasoning = { effort: "minimal" };
+  // 代理模式不带任何凭据
+  const res = await fetch(proxied ? PROXY_URL : API+"/chat/completions", { method:"POST", signal,
+    headers: proxied
+      ? { "Content-Type":"application/json" }
+      : { "Content-Type":"application/json", "Authorization":"Bearer "+cfg.key.trim(),
+          "X-Title":"Anko Player", "HTTP-Referer":"https://localhost/anko" },
+    body: JSON.stringify(body) });
+  if(!res.ok){
+    let d = await res.text();
+    try{ const j=JSON.parse(d); d = j.error?.message || j.message || d; }catch(e){}
+    if(/guardrail/i.test(String(d)) && viaProxy())
+      throw new Error("内置额度只开放了 "+PROXY_MODEL+" 这一个模型。\n\n"
+        + "想用别的模型，请在设置里填你自己的 OpenRouter key（直连、费用走你自己的账号）。");
+    throw new Error("HTTP "+res.status+" — "+String(d).slice(0,500));
+  }
+  const rd = res.body.getReader(), dec = new TextDecoder();
+  let buf="", text="", usage=null;
+  for(;;){
+    const {done,value} = await rd.read(); if(done) break;
+    buf += dec.decode(value,{stream:true});
+    const lines = buf.split("\n"); buf = lines.pop();
+    for(const raw of lines){
+      const s = raw.trim();
+      if(!s || s.startsWith(":") || !s.startsWith("data:")) continue;
+      const d = s.slice(5).trim(); if(d==="[DONE]") continue;
+      let j; try{ j = JSON.parse(d); }catch(e){ continue; }
+      if(j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+      const c = j.choices && j.choices[0];
+      if(c && c.delta && c.delta.content){ text += c.delta.content; onText(text); }
+      if(j.usage) usage = j.usage;
+    }
+  }
+  if(!text.trim()) throw new Error("模型没有返回任何内容（可能拒绝了请求，或上游超时）。换个模型试试。");
+  return { text, usage };
+}
+function bill(usage){
+  if(!usage) return;
+  const cd = usage.cost_details || {};
+  game.cost += (+usage.cost || +cd.upstream_inference_cost || 0);
+  game.tok  = (game.tok||0) + (+usage.total_tokens || 0);
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+function hud(){
+  $("#g-title").textContent = cfg.title || "未命名安科";
+  $("#g-turn").textContent  = "第 " + storyTurns().length + " 回";
+  $("#g-model").textContent = cfg.model.split("/").pop();
+  $("#g-cost").textContent  = "$" + game.cost.toFixed(4)
+    + (game.tok ? " · " + (game.tok>=1000 ? (game.tok/1000).toFixed(1)+"k" : game.tok) + " tok" : "");
+}
+function sheetHTML(s){
+  if(!s) return "";
+  let h = '<div class="card"><div class="ch">人物卡</div>';
+  const a = Object.entries(s.attrs);
+  if(a.length){
+    const lo = a.slice().sort((x,y)=>x[1]-y[1])[0], hi = a.slice().sort((x,y)=>y[1]-x[1])[0];
+    const span = Math.max(1, hi[1]);
+    h += '<div class="attrs">' + a.map(([k,v])=>{
+      const cls = k===lo[0] ? " lo" : k===hi[0] ? " hi" : "";
+      return '<span class="at'+cls+'"><i>'+esc(k)+'</i><b>'+v+'</b>'
+           + '<em style="width:'+Math.max(3,Math.min(100, v/span*100))+'%"></em></span>';
+    }).join("") + '</div>';
+  }
+  if(s.traits.length)
+    h += '<div class="stat">'+s.traits.map(t=>'<span class="s"><i>'+esc(t.label)+'</i><b>'+esc(t.outcome)+'</b></span>').join("")+'</div>';
+  if(s.world.length)
+    h += '<div class="ch" style="margin-top:14px">世界设定</div><div class="stat">'
+       + s.world.map(w=>'<span class="s"><i>'+esc(w.label)+'</i><b>'+esc(w.outcome)+'</b></span>').join("")+'</div>';
+  return h + '</div>';
+}
+function turnHTML(t, live){
+  if(t.chargen){
+    return '<div class="turn"><div class="tno"><span class="n">开 局 骰</span></div>'
+      + '<div class="narr">'+(t.checks||[]).map((c,i)=>checkHTML(c,i)).join("")+'</div>'
+      + sheetHTML(game.sheet) + '</div>';
+  }
+  const editable = cfg.cheat && !live && lastTurn()===t;
+  let h = '<div class="turn"><div class="tno"><span class="n">第 '+t.no+' 回</span></div>';
+  if(t.scene && t.scene.length)
+    h += '<div class="scene">'+t.scene.map(x=>"<div>"+esc(x)+"</div>").join("")+'</div>';
+  h += '<div class="narr">'+narrHTML(t,live,editable)+'</div>';
+  if(cfg.status && t.stats && t.stats.length)
+    h += '<div class="stat">'+t.stats.map(s=>'<span class="s"><i>'+esc(s.k)+'</i><b>'+esc(s.v)+'</b></span>').join("")+'</div>';
+  if(t.affs && t.affs.length)
+    h += '<div class="affrow">'+t.affs.map(a=>'<span class="a"><u>'+esc(a.a)+' → '+esc(a.b)+'</u> '
+      +(a.v>0?"+":"")+a.v+'</span>').join("")+'</div>';
+  if(t.clues && t.clues.length)
+    h += t.clues.map(c=>'<div class="clue"><span class="h">[ 线索已收集 ]</span>'+esc(c)+'</div>').join("");
+
+  const opts = t.options || [];
+  if(opts.length){
+    const done = t.rolled || t.manual;
+    h += '<div class="opts"><div class="hd">10 个走向</div>';
+    for(let i=0;i<10;i++){
+      const txt = opts[i]; if(!txt) continue;
+      const q = isQ(txt), win = t.rolled===i+1;
+      const can = !done && (cfg.anka || cfg.cheat) && (!q || cfg.cheat);
+      const cls = ["opt", q?"q":"", win?"win":"", (done&&!win)?"dim":"", can?"pick":""].filter(Boolean).join(" ");
+      h += '<button class="'+cls+'" '+(can?'data-pick="'+(i+1)+'"':"")+'><span class="i">'+(i+1)
+         + '</span><span class="t">'+esc(txt)+'</span></button>';
+    }
+    h += '</div>';
+  }
+  if(t.rolled){
+    h += '<div class="rollline'+(t.forced?" manual":"")+'">'
+       + (t.forced ? '<span class="lbl">【作弊·指定】</span><span class="v">'+t.rolled+'</span>'
+                   : '<span class="lbl">【ROLL：1D10=d10(10)=</span><span class="v">'+t.rolled+'</span><span class="lbl">】</span>');
+    h += t.chaos
+      ? '<span>→ ？？？？</span></div><div class="rollline chaos"><span class="lbl">【ROLL：1D2=d2(2)=</span><span class="v">'
+        + t.chaos.v+'</span><span class="lbl">】</span><span>→ '+t.chaos.label+'</span></div>'
+      : '<span>→ '+esc(t.options[t.rolled-1]||"")+'</span></div>';
+  } else if(t.manual){
+    h += '<div class="rollline manual"><span class="lbl">【安价】</span><span>'+esc(t.manual)+'</span></div>';
+  }
+  // 作弊工具条：只挂在最新一回，事后想重来才用，不打断正常流程
+  if(cfg.cheat && !live && lastTurn()===t){
+    h += '<div class="cheatbar">'
+      + '<span class="lb">作弊</span>'
+      + '<span class="lb2">改上面任意判定的点数（↻ 重掷 / 填数字后按 ✓），然后：</span>'
+      + '<button class="btn sm" data-redo="write">⟳ 用这些点数重写本回合</button>'
+      + '<button class="btn sm" data-redo="recheck">↻ 全部重掷并重写</button>'
+      + '</div>';
+  }
+  return h + '</div>';
+}
+function render(){
+  $("#feed").innerHTML = game.turns.map(t=>turnHTML(t,false)).join("")
+    + '<div id="live"></div><div id="dock"></div>';
+  hud();
+}
+// 内容没变就不要重写 DOM——流式渲染每个 chunk 都重建整张卡片会闪
+let liveLast = null;
+const live = h => { const e=$("#live"); if(e && h!==liveLast){ e.innerHTML=h; liveLast=h; } };
+function dock(h){ const d=$("#dock"); if(d) d.innerHTML = h ? '<div class="dock"><div class="in">'+h+'</div></div>' : ""; }
+function dockRoll(){
+  dock('<button class="btn primary rollbtn" id="btn-roll">🎲 掷骰决定命运 <span class="d">1D10</span></button>'
+    + (cfg.cheat ? '<div class="cheatbar"><span class="lb">作弊：直接指定点数</span>'
+        + '<input id="cheat-n" type="number" min="1" max="10" placeholder="1-10">'
+        + '<button class="btn sm" id="btn-force">就这个</button>'
+        + '<span class="lb">（选项也可以直接点，含 ？？？？）</span></div>' : "")
+    + '<div class="anka '+(cfg.anka?"":"hide")+'"><input class="inp" id="anka-in" placeholder="或者安价：直接写下你想要的走向…">'
+    + '<button class="btn" id="btn-anka">安价</button></div>');
+  $("#btn-roll").onclick = doRoll;
+  const fb = $("#btn-force");
+  if(fb) fb.onclick = () => {
+    const v = parseInt($("#cheat-n").value,10);
+    if(!(v>=1 && v<=10)) return toast("填 1 到 10");
+    doRoll(v);
+  };
+  const ai = $("#anka-in");
+  if(ai){ $("#btn-anka").onclick = doAnka; ai.onkeydown = e=>{ if(e.key==="Enter") doAnka(); }; }
+}
+const scroll = sm => window.scrollTo({ top: document.body.scrollHeight, behavior: sm?"smooth":"auto" });
+
+/* ============================================================
+   回合生成
+   ============================================================ */
+/* ============================================================
+   掷骰页面：主骰和「大判定」共用
+   ============================================================ */
+async function diceShow(o){
+  const ov=$("#dice"), num=$("#d-num"), shape=$("#d-shape"), res=$("#d-res"),
+        cap=$("#d-cap"), optsEl=$("#d-opts");
+  cap.textContent = o.cap || "";
+  optsEl.innerHTML = (o.options||[]).map((x,i)=>
+    '<div class="do" data-oi="'+i+'"><i>'+esc(x.tag||"")+'</i><span>'+esc(x.text)+'</span></div>').join("");
+  res.innerHTML = o.title ? '<div class="lbl2">'+esc(o.title)+'</div>' : "";
+  res.classList.toggle("on", !!o.title);
+  num.textContent="?"; shape.classList.remove("land"); shape.classList.add("spin");
+  ov.classList.add("on");
+
+  if(!cfg.fast){
+    const t0 = performance.now(), dur = o.dur || 1100;
+    while(performance.now()-t0 < dur){
+      num.textContent = roll(o.faces); tick();
+      await sleep(58 + (performance.now()-t0)/22);
+    }
+  }
+  shape.classList.remove("spin"); shape.classList.add("land");
+  num.textContent = o.value; chime();
+
+  if(o.winIndex != null){
+    const w = optsEl.querySelector('[data-oi="'+o.winIndex+'"]');
+    if(w) w.classList.add("win");
+  }
+  res.innerHTML = o.resultHTML || res.innerHTML;
+  res.classList.add("on");
+  await sleep(cfg.fast ? 550 : (o.hold || 1400));
+  ov.classList.remove("on");
+  optsEl.innerHTML = "";
+}
+/* 哪些判定值得单独走一次掷骰页面：会让剧情分叉的那些 */
+/* 默认只有导游标记为大判定（或玩家点了 ★）的才走掷骰页面。
+   开了「D10表一律」才把所有分叉表都算进来。 */
+const isBigRoll = c => cfg.bigroll!==false
+  && (c.big || (cfg.bigTables && (c.kind==="table" || c.kind==="polar")));
+/* 按类型分发。任何一种判定都可能被标记成大判定（提示词里 [D100!] 就是合法的），
+   所以这里必须覆盖全部 kind——以前除 polar 外一律走 table 分支，
+   一个没有选项列表的 [D100!] 就会让 tableRanges 拿到空数组直接崩。 */
+function bigRollView(c, note){
+  const title = (note ? note+"　" : "") + c.label;
+  const sp = c.spec;
+  const v = { cap: (sp.n>1?sp.n:1)+"D"+sp.faces + (sp.bonus ? (sp.bonus>0?"+":"")+sp.bonus : ""),
+              faces: sp.faces, value: c.raw, title, options: [], winIndex: null };
+  const fin = body => (v.resultHTML = '<div class="lbl2">'+esc(title)+'</div>'+body, v);
+
+  if(c.kind==="polar" && c.opts.length>=2){
+    const half = Math.floor(sp.faces/2);
+    v.options = [{ tag:"1-"+half, text:c.opts[0] },
+                 { tag:(half+1)+"-"+sp.faces, text:c.opts[1] }];
+    v.winIndex = c.raw <= half ? 0 : 1;
+    return fin(esc(c.outcome));
+  }
+  if(c.kind==="table" && c.opts.length){
+    v.options = tableRanges(c).map(r=>({ tag: rangeTag(r), text: r.text }));
+    v.options.push({ tag:String(sp.faces), text:"？？？？" });
+    v.winIndex = c.special ? v.options.length-1 : tableIndex(c);
+    return fin(c.special ? '<span class="k">？？？？</span>　再换一批更离谱的重摇' : esc(c.outcome));
+  }
+  if(c.kind==="tier" && c.tiers && c.tiers.length){
+    const asc = c.tiers.slice().reverse();              // tiers 存的是降序
+    v.options = asc.map(t=>({ tag:">"+t.at, text:t.txt }));
+    let hit = -1;
+    asc.forEach((t,i)=>{ if(c.total > t.at) hit = i; });
+    v.winIndex = hit>=0 ? hit : null;
+    return fin(esc(c.outcome));
+  }
+  if(c.kind==="spectrum" && c.poles){
+    v.options = [{ tag:"低", text:c.poles[0] }, { tag:"高", text:c.poles[1] }];
+    if(c.pct != null) v.winIndex = c.pct < 50 ? 0 : 1;
+    return fin(esc(c.outcome));
+  }
+  // 判定 / 检定 / 好感 / 暗骰 / 骰 / 属性：没有可列举的选项，只报结果
+  return fin(esc(c.kind==="hidden" ? "（暗骰，结果不公开）" : c.outcome));
+}
+
+/* ============================================================
+   骰出 10 → 换一批更离谱的选项重摇，新表的 10 还能继续升级
+   ============================================================ */
+const ESC_MAX = 3;
+function escPrompt(c, prev, depth){
+  return [
+sysBase(),
+``,
+`## 现在是【？？？？升级】`,
+`判定「${c.label}」骰出了 ${c.spec.faces} —— 也就是「？？？？」。`,
+`按安科的规矩，这时不是由你随便写，而是**换一批更离谱的选项重新摇一次**。`,
+``,
+`${depth>1 ? "上一轮" : "原来"}的选项是：`,
+prev.map((o,i)=>(i+1)+". "+o).join("\n"),
+``,
+`请给出 9 个新选项，要求：`,
+`- **明显比上面那批更离谱、更极端、更出格**${depth>1 ? "——这已经是第 "+depth+" 次升级了，尺度要再上一个台阶" : ""}。`,
+`- 不要重复上面任何一项，也不要只是给原来的加个形容词了事。`,
+`- 九项之间差异要大，覆盖完全不同的方向，别是同一件事的九种说法。`,
+`- 每项 10～30 字，是具体的事件或状态，不是抽象描述。`,
+`- 仍然贴着本篇的前提走，再离谱也要能圆回故事里。`,
+``,
+`只输出一行，格式如下，不要有任何其它文字：`,
+`《选项一｜选项二｜选项三｜选项四｜选项五｜选项六｜选项七｜选项八｜选项九》`
+].join("\n");
+}
+/* onLevel(newCheck) 用来给每一级升级播掷骰动画 */
+async function escalateTable(c, signal, onLevel){
+  c.chain = [];
+  let prev = c.opts, depth = 0;
+  while(depth < ESC_MAX){
+    depth++;
+    let r;
+    try{
+      r = await streamChat([{role:"system",content:"x"},{role:"user",content:"给出升级后的选项。"}],
+                           ()=>{}, signal, escPrompt(c, prev, depth));
+    }catch(e){ if(e.name==="AbortError") throw e; break; }
+    bill(r.usage);
+    const inner = grabAngle(r.text);
+    if(!inner) break;
+    const opts = splitOpts(inner);
+    if(opts.length < 2) break;
+
+    const nc = { kind:"table", label:c.label, mods:[], opts, diff:null, big:c.big,
+                 spec:{ n:1, faces:c.spec.faces, bonus:0 }, escLevel:depth };
+    resolveCheck(nc);
+    c.chain.push(nc);
+    if(onLevel) await onLevel(nc);
+    if(!nc.special) break;            // 没再骰出 10 就停
+    prev = opts;
+  }
+  const last = c.chain.length ? c.chain[c.chain.length-1] : null;
+  if(last && !last.special) c.outcome = last.outcome;
+  else if(last) c.outcome = "？？？？（升级到顶，交由主持人自由发挥）";
+  return c;
+}
+
+/* 交锋逐回合揭示——不能默默算完就宣布谁赢，要让读者看着点数一回合一回合出来 */
+async function revealDuel(d, box, before){
+  if(!d || !d.res || !box) return;
+  const wrap = document.createElement("div");
+  wrap.className = "duel pop";
+  wrap.innerHTML = '<div class="dh"><span class="k">言论交锋</span>'+esc(d.topic||"")+'</div>'
+    + '<div class="bar" id="dl-bar"></div><div id="dl-rows"></div>';
+  box.insertBefore(wrap, before || null);
+  const bar = wrap.querySelector("#dl-bar"), rows = wrap.querySelector("#dl-rows");
+  const paintBar = pos => {
+    let h = '<span class="nm">'+esc(d.us.name)+'</span>';
+    for(let i=-3;i<=3;i++){
+      if(i===0){ h += '<span class="c" style="flex:0 0 2px;background:var(--line2)"></span>'; continue; }
+      const on = (i>0 && pos>=i) || (i<0 && pos<=i);
+      h += '<span class="c '+(on ? (i>0?"us":"them") : "")+'"></span>';
+    }
+    bar.innerHTML = h + '<span class="nm">'+esc(d.them.name)+'</span>';
+  };
+  paintBar(0);
+  for(const x of d.res.log){
+    const aw = x.w==="us", bw = x.w==="them";
+    const row = document.createElement("div");
+    row.className = "rd pop";
+    row.innerHTML = '<span class="n">第'+x.r+'回</span>'
+      + '<span class="s'+(aw?" w":"")+'">'+esc(d.us.name)+' '+x.a.ds.join("+")+' = '+x.a.sum+'</span>'
+      + '<span class="s'+(bw?" w":"")+'">'+esc(d.them.name)+' '+x.b.ds.join("+")+' = '+x.b.sum+'</span>'
+      + '<span class="adv">优势 '+(x.adv>0?"+":"")+x.adv+'</span>';
+    rows.appendChild(row);
+    paintBar(x.adv);
+    clack();
+    await sleep(cfg.fast ? 60 : 520);
+  }
+  const wn = d.res.winner==="us" ? d.us.name : d.res.winner==="them" ? d.them.name : null;
+  const win = document.createElement("div");
+  win.className = "win pop";
+  win.textContent = wn ? wn+" 取得了胜利" : "势均力敌，不分胜负";
+  wrap.appendChild(win);
+  chime();
+  await sleep(cfg.fast ? 200 : 800);
+}
+
+/* 好感度与线索从各回合重算——重写回合后能干净地回滚，不会留下已撤销回合的账 */
+function rebuildLedger(){
+  game.aff = {}; game.clues = [];
+  storyTurns().forEach(t=>{
+    (t.checks||[]).filter(c=>c.kind==="aff").forEach(c=>{
+      const m = c.label.match(/^(.+?)\s*(?:对|→|->)\s*(.+)$/);
+      if(m){ const k = cleanName(m[1])+" → "+cleanName(m[2]); game.aff[k] = (game.aff[k]||0) + c.lv; }
+    });
+    (t.affs||[]).forEach(a=>{ const k=cleanName(a.a)+" → "+cleanName(a.b); game.aff[k] = (game.aff[k]||0) + a.v; });
+    (t.clues||[]).forEach(c=> game.clues.push({ turn:t.no, text:c }));
+  });
+}
+
+/* 作弊：重写最后一回。不打断正常流程，事后不满意才用。
+   mode 'write'   —— 判定不变，只让导游重写一遍
+   mode 'recheck' —— 重掷本回合的判定，再重写
+   mode 'roll'    —— 改上一回的 1D10 点数，整回重来（含重新申请判定） */
+async function redoTurn(mode){
+  if(busy) return;
+  const ts = storyTurns();
+  const cur = ts[ts.length-1];
+  if(!cur) return;
+
+  game.turns.splice(game.turns.indexOf(cur), 1);
+  rebuildLedger();
+
+  let preset = null;
+  if(mode === "write") preset = { checks: cur.checks, duel: cur.duel };
+  else if(mode === "recheck"){
+    (cur.checks||[]).forEach(c=>{
+      ["crit","fumble","special","lv","parts","raw","total","outcome"].forEach(k=>delete c[k]);
+      resolveCheck(c);
+    });
+    if(cur.duel) cur.duel.res = simDuel(cur.duel.us, cur.duel.them);
+    preset = { checks: cur.checks, duel: cur.duel };
+  }
+  render(); saveGame();
+  await nextTurn(preset);
+}
+
+/* 意外事件池：每回合问一次骰娘 */
+function rollIncident(){
+  const pool = (cfg.pool||"").split("\n").map(x=>x.trim()).filter(x=>x.length>1);
+  if(!pool.length) return null;
+  const gate = roll(100);
+  if(gate < 85) return null;
+  return { gate, pick: pool[roll(pool.length)-1], size: pool.length };
+}
+
+/* preset：重写本回合时把已经摇好的判定原样带回来，跳过判定阶段 */
+async function nextTurn(preset){
+  if(busy) return;
+  busy = true; ctrl = new AbortController();
+  const no = storyTurns().length + 1;
+  let stick = true;
+  const onScroll = () => { stick = (window.innerHeight+window.scrollY) >= document.body.scrollHeight-140; };
+  window.addEventListener("scroll", onScroll, {passive:true});
+
+  try{
+    let checks = [], duel = null, extra = null, incident = null;
+
+    /* ---- 开局骰（仅第 1 回之前） ---- */
+    if(cfg.chargen && !game.sheet && no === 1){
+      dock('<div class="dockmsg">开局骰：正在生成世界与人物卡…</div>'
+        + '<button class="btn" style="width:100%;margin-top:8px" id="btn-stop0">停止</button>');
+      $("#btn-stop0").onclick = ()=>ctrl.abort();
+      live('<div class="turn"><div class="tno"><span class="n">开局骰</span></div>'
+        + '<div class="load"><span class="dots"><i></i><i></i><i></i></span>导游正在决定这个世界和主角是什么样子…</div></div>');
+      scroll();
+
+      const cg = await streamChat([{role:"system",content:"x"},{role:"user",content:"开始开局骰。"}],
+        ()=>{}, ctrl.signal, chargenPrompt());
+      bill(cg.usage);
+      const parsed = parseChargen(cg.text);
+      const all = parsed.world.concat(parsed.person);
+      if(all.length < 4) throw new Error("开局骰解析失败，只认出 "+all.length+" 条。\n\n原始输出：\n"+cg.text.slice(0,500));
+
+      /* 逐条追加，不重建已显示的，避免整块闪烁 */
+      live('<div class="turn"><div class="tno"><span class="n">开局骰</span></div>'
+        + '<div class="narr" id="cgbox"><div class="load" id="cgload">'
+        + '<span class="dots"><i></i><i></i><i></i></span>摇骰中…</div></div></div>');
+      const cgbox = $("#cgbox"), cgload = $("#cgload");
+      for(const c of all){
+        resolveCheck(c);
+        if(isBigRoll(c)) await diceShow(bigRollView(c));
+        else { clack(); if(c.crit||c.fumble) chime(); }
+        if(c.kind==="table" && c.special)
+          await escalateTable(c, ctrl.signal, async nc=>{
+            if(isBigRoll(c)) await diceShow(bigRollView(nc, "更离谱的一批"));
+            else clack();
+          });
+        if(cgbox){
+          const tmp = document.createElement("div");
+          tmp.innerHTML = checkHTML(c, null);
+          const el = tmp.firstElementChild;
+          if(el){ el.classList.add("pop"); cgbox.insertBefore(el, cgload); }
+        }
+        if(stick) scroll();
+        await sleep(cfg.fast ? 40 : 260);
+      }
+      if(cgload) cgload.remove();
+      liveLast = null;
+      game.sheet = sheetFrom(parsed.world, parsed.person);
+      game.turns.push({ no:0, chargen:true, scene:[], narration:"", checks:all, options:[],
+                        stats:[], clues:[], affs:[], raw:"", rolled:null, chaos:null, manual:null });
+      live(""); render(); saveGame();
+      if(stick) scroll();
+    }
+
+    /* ---- 重写本回合：判定已经摇好，直接进书写阶段 ---- */
+    if(preset){
+      checks = preset.checks || []; duel = preset.duel || null; incident = preset.incident || null;
+      if(checks.length || duel || incident) extra = checksToPrompt(checks, duel, incident);
+      for(const c of checks) if(isBigRoll(c)) await diceShow(bigRollView(c));
+      live('<div class="turn"><div class="tno"><span class="n">第 '+no+' 回</span></div>'
+        + '<div class="narr">'+checks.map((x,i)=>checkHTML(x,i)).join("")+'</div></div>');
+    }
+    /* ---- 判定阶段 ---- */
+    else if(cfg.plan){
+      dock('<div class="dockmsg">主持人正在申请第 '+no+' 回的判定…</div>'
+        + '<button class="btn" style="width:100%;margin-top:8px" id="btn-stop">停止</button>');
+      $("#btn-stop").onclick = ()=>ctrl.abort();
+      live('<div class="turn"><div class="tno"><span class="n">第 '+no+' 回</span></div>'
+        + '<div class="load"><span class="dots"><i></i><i></i><i></i></span>判定阶段：主持人正在声明这一回要交给骰子的事…</div></div>');
+      scroll();
+
+      /* 关键：历史里最后一条 user 是「请演绎出来，写第 N 回」，会和判定阶段的
+         system 指令打架。回合一多，模型就照着写正文去了、判定全空。
+         所以这里必须补一条最后的 user 指令把它压回来。 */
+      const KICK = "【判定阶段】停。现在**不要写正文**，也不要接着上面的剧情往下写。\n"
+        + "这一次只输出第 " + no + " 回需要交给骰子的判定申请（每行一条，[类型] 开头）。";
+      let plan = await streamChat(buildMsgs(KICK), ()=>{}, ctrl.signal, planPrompt());
+      bill(plan.usage);
+      checks = parseChecks(plan.text.replace(/[=＝]{2,}\s*交\s*锋[\s\S]*$/,""));
+
+      // 一条都没解析出来 = 模型跑偏了，再逼一次，别静默地把这一回的骰子全跳过
+      if(!checks.length){
+        try{ console.warn("[安科] 第"+no+"回判定申请为空，重试。原始输出：", plan.text.slice(0,300)); }catch(e){}
+        const RETRY = KICK + "\n\n上一次你没有按格式输出。请**只**输出 3～5 行，"
+          + "每行形如：\n[D100] 事项 (+20 理由)\n[D10表] 事项 《甲｜乙｜丙》\n"
+          + "不要有任何其它文字，不要写正文。";
+        plan = await streamChat(buildMsgs(RETRY), ()=>{}, ctrl.signal, planPrompt());
+        bill(plan.usage);
+        checks = parseChecks(plan.text.replace(/[=＝]{2,}\s*交\s*锋[\s\S]*$/,""));
+        if(!checks.length) toast("这一回没能生成判定，直接进入书写");
+      }
+      if(cfg.duel) duel = parseDuel(plan.text);
+
+      /* 摇骰，逐条揭示——往容器里追加，不重建已经显示过的，避免闪烁 */
+      if(checks.length || duel){
+        live('<div class="turn"><div class="tno"><span class="n">第 '+no+' 回</span></div>'
+          + '<div class="narr" id="chkbox"><div class="load" id="chkload">'
+          + '<span class="dots"><i></i><i></i><i></i></span>判定中…</div></div></div>');
+        const box = $("#chkbox"), ld = $("#chkload");
+        for(const c of checks){
+          resolveCheck(c);
+          if(isBigRoll(c)) await diceShow(bigRollView(c));
+          else { clack(); if(c.crit||c.fumble) chime(); }
+          if(c.kind==="table" && c.special)
+            await escalateTable(c, ctrl.signal, async nc=>{
+              if(isBigRoll(c)) await diceShow(bigRollView(nc, "更离谱的一批"));
+              else clack();
+            });
+          if(box){
+            const tmp = document.createElement("div");
+            tmp.innerHTML = checkHTML(c, null);
+            const el = tmp.firstElementChild;
+            if(el){ el.classList.add("pop"); box.insertBefore(el, ld); }
+          }
+          if(stick) scroll();
+          await sleep(cfg.fast ? 40 : 320);
+        }
+        if(duel){
+          duel.res = simDuel(duel.us, duel.them);
+          await revealDuel(duel, box, ld);
+          if(stick) scroll();
+        }
+        if(ld) ld.remove();
+        liveLast = null;   // 下一阶段要重新接管这块
+      }
+      incident = rollIncident();
+      if(checks.length || duel || incident) extra = checksToPrompt(checks, duel, incident);
+    }
+
+    /* ---- 书写阶段 ---- */
+    dock('<div class="dockmsg">主持人正在写第 '+no+' 回…</div>'
+      + '<button class="btn" style="width:100%;margin-top:8px" id="btn-stop2">停止生成</button>');
+    $("#btn-stop2").onclick = ()=>ctrl.abort();
+
+    /* 书写阶段：外壳只搭一次，之后只改正文那一块。
+       整卡重建会把已经显示的判定块反复销毁重建，那正是流式过程中的闪烁来源。 */
+    live('<div class="turn"><div class="tno"><span class="n">第 '+no+' 回</span></div>'
+      + '<div class="scene" id="lv-scene" style="display:none"></div>'
+      + '<div class="narr">'
+      +   '<div id="lv-chk">'+checks.map((x,i)=>checkHTML(x,i)).join("")+'</div>'
+      +   '<div id="lv-narr"></div>'
+      + '</div><div id="lv-opts"></div></div>');
+    const lvScene=$("#lv-scene"), lvNarr=$("#lv-narr"), lvOpts=$("#lv-opts"), lvChk=$("#lv-chk");
+    let lastO="", lastS="", lastChk=null, tick0=0;
+    let painted = [];   // 已经画进 #lv-narr 的块
+
+    /* 按块增量刷新：只重画从第一个变化的块开始的部分。
+       流式文本只会往后长，所以通常只有最后一块在动——
+       已经归位的判定块和段落不会被销毁重建，因此不闪。 */
+    const paintNarr = p => {
+      const s = narrScan({ narration:p.narration||"", checks, duel }, false);
+      // 还没被正文标记认领的判定，暂时留在上方容器里；认领一个就少一个
+      const leftHTML = checks.map((c,i)=>s.used.has(i)?null:checkHTML(c,i)).filter(Boolean).join("");
+      if(lvChk && leftHTML !== lastChk){ lvChk.innerHTML = leftHTML; lastChk = leftHTML; }
+
+      let i = 0;
+      while(i < painted.length && i < s.blocks.length && painted[i] === s.blocks[i]) i++;
+      while(lvNarr.children.length > i) lvNarr.removeChild(lvNarr.lastChild);
+      for(let k=i; k<s.blocks.length; k++){
+        const tmp = document.createElement("div");
+        tmp.innerHTML = s.blocks[k];
+        const el = tmp.firstElementChild;
+        if(el){ if(el.classList.contains("chk")||el.classList.contains("duel")) el.classList.add("pop");
+                lvNarr.appendChild(el); }
+      }
+      painted = s.blocks;
+    };
+
+    const { text, usage } = await streamChat(buildMsgs(extra), tx=>{
+      const now = performance.now();
+      if(now - tick0 < 90) return;                 // 节流，别每个 chunk 都重排
+      tick0 = now;
+      const p = parseTurn(tx);
+      if(!p.narration && !p.options.length) return;
+      if(lvNarr) paintNarr(p);
+      const sh = (p.scene||[]).map(x=>"<div>"+esc(x)+"</div>").join("");
+      if(lvScene && sh!==lastS){ lvScene.innerHTML = sh; lvScene.style.display = sh?"":"none"; lastS = sh; }
+      const oh = p.options.length
+        ? '<div class="opts"><div class="hd">10 个走向</div>'
+          + p.options.map((o,i)=> o ? '<div class="opt'+(isQ(o)?" q":"")+'"><span class="i">'+(i+1)
+              + '</span><span class="t">'+esc(o)+'</span></div>' : "").join("") + '</div>'
+        : "";
+      if(lvOpts && oh!==lastO){ lvOpts.innerHTML = oh; lastO = oh; }
+      if(stick) scroll();
+    }, ctrl.signal);
+    bill(usage);
+
+    const p = parseTurn(text);
+    if(!p.narration) throw new Error("解析失败：找不到正文。\n\n原始输出片段：\n"+text.slice(0,400));
+
+    /* 选项单独再要一次：正文末尾顺手写出来的选项容易和往回合雷同 */
+    if(cfg.sepopts){
+      const askOpts = async (extraHint, slim) => {
+        const oz = await streamChat(
+          [{role:"system",content:"x"},{role:"user",content:"给出这一回的 10 个走向。"+(extraHint||"")}],
+          tx=>{
+            const got = parseOpts(tx).filter(Boolean);
+            if(lvOpts && got.length) lvOpts.innerHTML = '<div class="opts"><div class="hd">10 个走向</div>'
+              + got.map((o,i)=>'<div class="opt'+(isQ(o)?" q":"")+'"><span class="i">'+(i+1)
+                + '</span><span class="t">'+esc(o)+'</span></div>').join("") + '</div>';
+          }, ctrl.signal, optsPrompt(p.narration, p.stats, slim));
+        bill(oz.usage);
+        return { list: parseOpts(oz.text), raw: oz.text };
+      };
+      dock('<div class="dockmsg">正在推敲这一回的 10 个走向…</div>');
+      let got = null, lastRaw = "", lastErr = null;
+      for(let attempt = 0; attempt < 2; attempt++){
+        if(attempt) dock('<div class="dockmsg">走向没出全，再要一次…</div>');
+        try{
+          const r = await askOpts(attempt
+            ? "\n\n上一次没有按格式输出。请**只**输出 10 行，形如「1. xxx」，第 10 行固定为「10. ？？？？」，不要有其它任何文字。"
+            : "", attempt > 0);
+          lastRaw = r.raw;
+          if(r.list.filter(Boolean).length >= 4){ got = r.list; break; }
+        }catch(e){
+          if(e.name==="AbortError") throw e;
+          lastErr = e;
+        }
+      }
+      if(got) p.options = got;
+      else if(!p.options.filter(Boolean).length)
+        // 报错要指向真正失败的那一步，别再把「正文」调用的输出贴出来误导人
+        throw new Error("走向生成失败（正文已写好，是这一步没出全 10 个走向）。\n\n"
+          + (lastErr ? "错误：" + lastErr.message + "\n\n" : "")
+          + "走向调用的原始输出：\n" + (lastRaw ? lastRaw.slice(0,400) : "（空）"));
+    }
+
+    if(p.options.filter(Boolean).length < 4)
+      throw new Error("解析失败：只解析出 "+p.options.filter(Boolean).length+" 个选项。\n\n正文调用的原始输出：\n"+text.slice(0,400));
+    for(let i=0;i<10;i++) if(!p.options[i]) p.options[i] = i===9 ? "？？？？" : "（主持人自由发挥）";
+    if(!isQ(p.options[9])) p.options[9] = "？？？？";
+
+    const turn = { no, scene:p.scene, narration:p.narration, stats:p.stats, clues:p.clues, affs:p.affs,
+                   options:p.options, checks, duel, raw:text, rolled:null, chaos:null, manual:null };
+    game.turns.push(turn);
+
+    rebuildLedger();
+    live(""); render(); dockRoll(); saveGame();
+    if(stick) scroll(true);
+  }catch(e){
+    live("");
+    const aborted = e.name === "AbortError";
+    dock('<div class="err"><b>'+(aborted?"已停止":"出错了")+'</b>'
+      + (aborted ? "" : '<div class="m">'+esc(e.message)+'</div>')
+      + '<div class="btns"><button class="btn primary sm" id="e-retry">重试</button>'
+      + '<button class="btn sm" id="e-set">打开设置</button></div></div>');
+    $("#e-retry").onclick = ()=>nextTurn();
+    $("#e-set").onclick = openSettings;
+  }finally{
+    window.removeEventListener("scroll", onScroll);
+    busy = false; ctrl = null;
+  }
+}
+
+/* ============================================================
+   主骰
+   ============================================================ */
+async function doRoll(forced){
+  if(busy) return;
+  const t = lastTurn();
+  if(!t || t.rolled || t.manual) return;
+  busy = true;
+
+  // 默认一切听骰子的；只有开了作弊模式才接受指定点数
+  const val = (cfg.cheat && forced>=1 && forced<=10) ? forced : roll(10);
+  t.forced = !!(cfg.cheat && forced);
+  const chaosOpt = isQ(t.options[val-1]);
+  const ov=$("#dice"), num=$("#d-num"), shape=$("#d-shape"), res=$("#d-res"), cap=$("#d-cap");
+  cap.textContent="1D10"; res.textContent=""; res.classList.remove("on");
+  num.textContent="?"; shape.classList.remove("land"); shape.classList.add("spin"); ov.classList.add("on");
+
+  let t0 = performance.now();
+  if(!cfg.fast) while(performance.now()-t0 < 1150){ num.textContent = roll(10); tick(); await sleep(58+(performance.now()-t0)/22); }
+  shape.classList.remove("spin"); shape.classList.add("land");
+  num.textContent = val; chime();
+  t.rolled = val;
+
+  if(chaosOpt){
+    res.innerHTML = '<span class="k">？？？？</span>　交由主持人自由发挥';
+    res.classList.add("on"); await sleep(cfg.fast?400:1000);
+    const cv = roll(2), label = cv===1 ? "大成功" : "大失败";
+    cap.textContent="1D2 · 大成功 / 大失败"; res.classList.remove("on"); await sleep(cfg.fast?80:220);
+    num.textContent="?"; shape.classList.remove("land"); shape.classList.add("spin");
+    t0 = performance.now();
+    if(!cfg.fast) while(performance.now()-t0 < 850){ num.textContent = roll(2); tick(); await sleep(62+(performance.now()-t0)/16); }
+    shape.classList.remove("spin"); shape.classList.add("land");
+    num.textContent = cv; chime();
+    t.chaos = { v:cv, label };
+    res.innerHTML = '<span class="'+(cv===1?"g":"r")+'">'+label+'</span>';
+    res.classList.add("on"); await sleep(cfg.fast?600:1150);
+  } else {
+    res.innerHTML = val+'　<span style="color:var(--tx2)">'+esc(t.options[val-1])+'</span>';
+    res.classList.add("on"); await sleep(cfg.fast?600:1250);
+  }
+  ov.classList.remove("on");
+  render(); saveGame(); busy=false; scroll(true); nextTurn();
+}
+function pickOption(i){
+  const t = lastTurn();
+  if(!t || t.rolled || t.manual || busy) return;
+  // ？？？？ 只能靠骰子交出来——除非开了作弊模式
+  if(isQ(t.options[i-1])){ if(cfg.cheat) doRoll(i); return; }
+  t.manual = t.options[i-1]; render(); saveGame(); nextTurn();
+}
+function doAnka(){
+  const el=$("#anka-in"); if(!el) return;
+  const v = el.value.trim(); if(!v) return;
+  const t = lastTurn();
+  if(!t || t.rolled || t.manual || busy) return;
+  t.manual = v; render(); saveGame(); nextTurn();
+}
+$("#feed").addEventListener("click", e=>{
+  const b = e.target.closest("[data-pick]"); if(b) return pickOption(+b.dataset.pick);
+
+  const t = lastTurn();
+  const reflow = () => { render(); if(!busy){ const x=lastTurn(); if(x && !x.rolled && !x.manual) dockRoll(); } };
+
+  // ★ 标记大判定：重写本回合时会弹掷骰页面
+  const bg = e.target.closest("[data-ck-big]");
+  if(bg && t && t.checks){
+    const c = t.checks[+bg.dataset.ckBig]; if(!c) return;
+    c.big = !c.big; saveGame(); reflow();
+    return toast(c.big ? "已标记为大判定，重写本回合时会掷骰" : "已取消大判定标记");
+  }
+  // ↻ 重掷某一项判定
+  const rr = e.target.closest("[data-ck-rr]");
+  if(rr && t && t.checks){
+    const c = t.checks[+rr.dataset.ckRr]; if(!c) return;
+    ["crit","fumble","special","lv","parts","raw","total","outcome"].forEach(k=>delete c[k]);
+    resolveCheck(c); clack(); saveGame(); reflow();
+    return;
+  }
+  // ✓ 用填进去的点数
+  const st = e.target.closest("[data-ck-set]");
+  if(st && t && t.checks){
+    const i = +st.dataset.ckSet, c = t.checks[i]; if(!c) return;
+    const inp = document.querySelector('[data-ck-in="'+i+'"]');
+    const v = inp ? parseInt(inp.value,10) : NaN;
+    if(!(v>=1 && v<=c.spec.faces)) return toast("填 1 到 "+c.spec.faces);
+    ["crit","fumble","special","lv","parts","raw","total","outcome"].forEach(k=>delete c[k]);
+    resolveCheck(c, v); c.forcedRaw = true; clack(); saveGame(); reflow();
+    return;
+  }
+  const d = e.target.closest("[data-redo]");
+  if(d){
+    if(busy) return toast("正在生成，稍等一下");
+    redoTurn(d.dataset.redo);
+  }
+});
+
+/* ============================================================
+   台账 / 导出
+   ============================================================ */
+function openLedger(){
+  const A = Object.entries(game.aff).sort((a,b)=>b[1]-a[1]);
+  let h = game.sheet ? sheetHTML(game.sheet).replace('class="card"','class="card" style="margin:0 0 18px"') : "";
+  h += '<div class="note">好感度按帖子里的换算表结算：1~15→-3、16~30→-2、31~45→-1、46~55→0、56~70→+1、71~85→+2、86~100→+3。</div>';
+  h += '<div class="ledger">' + (A.length
+    ? A.map(([k,v])=>'<div class="r"><span>'+esc(k)+'</span><span style="color:'
+        +(v>0?"var(--green)":v<0?"var(--red)":"var(--tx3)")+'">'+(v>0?"+":"")+v+'</span></div>').join("")
+    : '<div style="color:var(--tx3)">还没有结算过好感度。</div>') + '</div>';
+  h += '<h3 style="margin:20px 0 10px;font-size:14px;color:var(--cyan)">线索（'+game.clues.length+'）</h3>';
+  h += game.clues.length
+    ? game.clues.map(c=>'<div class="clue"><span class="h">[ 第 '+c.turn+' 回 ]</span>'+esc(c.text)+'</div>').join("")
+    : '<div style="color:var(--tx3);font-size:13px">还没有收集到线索。</div>';
+  $("#led-body").innerHTML = h;
+  $("#m-led").classList.add("on");
+}
+function exportMD(){
+  const L = ["# "+(cfg.title||"未命名安科"), "", "> "+cfg.premise.replace(/\n/g,"\n> "), "",
+    "*模型："+cfg.model+"　混沌度："+cfg.chaos+"/5　共 "+storyTurns().length+" 回*", "", "---", ""];
+  if(game.sheet){
+    L.push("## 开局骰","");
+    game.sheet.world.forEach(w=>L.push("- "+w.label+"："+w.outcome));
+    const a = Object.entries(game.sheet.attrs);
+    if(a.length) L.push("", "**属性**　"+a.map(([k,v])=>"`"+k+" "+v+"`").join("　"));
+    game.sheet.traits.forEach(t=>L.push("- "+t.label+"："+t.outcome));
+    L.push("","---","");
+  }
+  storyTurns().forEach(t=>{
+    L.push("## 第 "+t.no+" 回", "");
+    if(t.scene && t.scene.length) L.push(t.scene.map(x=>"`["+x+"]`").join(" "), "");
+    (t.checks||[]).forEach((c,i)=>{
+      const kind = {d100:"判定",polar:"极性",table:"D10表",aff:"好感",hidden:"暗骰"}[c.kind];
+      L.push("`["+kind+"] "+c.label+" "+checkExpr(c)+" → "+c.outcome+"`");
+    });
+    if((t.checks||[]).length) L.push("");
+    L.push(t.narration.replace(/^[【\[]\s*(判定\s*\d+|交锋)\s*[】\]]$/gm,"").replace(/\n{3,}/g,"\n\n"), "");
+    if(t.duel && t.duel.res){
+      L.push("**言论交锋 · "+t.duel.topic+"**", "");
+      t.duel.res.log.forEach(x=>L.push("- 第"+x.r+"回合　"+t.duel.us.name+" "+x.a.sum+" vs "
+        +t.duel.them.name+" "+x.b.sum+"　→ 优势 "+(x.adv>0?"+":"")+x.adv));
+      L.push("");
+    }
+    if(t.stats && t.stats.length) L.push(t.stats.map(s=>"`"+s.k+"："+s.v+"`").join("　"), "");
+    (t.clues||[]).forEach(c=>L.push("> [线索已收集] "+c, ""));
+    (t.options||[]).forEach((o,i)=>{ if(o) L.push((i+1)+". "+o+(t.rolled===i+1?"　**← 选中**":"")); });
+    L.push("");
+    if(t.rolled){
+      L.push("`【ROLL：1D10=d10(10)="+t.rolled+"】`"+(t.chaos?"":" → "+(t.options[t.rolled-1]||"")));
+      if(t.chaos) L.push("`【ROLL：1D2=d2(2)="+t.chaos.v+"】` → **"+t.chaos.label+"**");
+      L.push("");
+    } else if(t.manual) L.push("`【安价】` "+t.manual, "");
+    L.push("---","");
+  });
+  const A = Object.entries(game.aff);
+  if(A.length){ L.push("## 好感度结算",""); A.forEach(([k,v])=>L.push("- "+k+"　"+(v>0?"+":"")+v)); L.push(""); }
+  const blob = new Blob([L.join("\n")], {type:"text/markdown;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (cfg.title||"安科").replace(/[\\/:*?"<>|]/g,"_")+".md";
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("已导出 Markdown");
+}
+
+/* ============================================================
+   设置 / 设置页
+   ============================================================ */
+function openSettings(){
+  $("#s-key").value=cfg.key; $("#s-model").value=cfg.model;
+  $("#s-chaos").value=cfg.chaos; $("#s-lb-chaos").textContent=CHAOS_LB[cfg.chaos];
+  $("#s-temp").value=cfg.temp; $("#s-lb-temp").textContent=(+cfg.temp).toFixed(2);
+  $("#s-cheat").checked=cfg.cheat; $("#s-bigroll").checked=cfg.bigroll!==false;
+  $("#s-bigtables").checked=!!cfg.bigTables; $("#s-fast").checked=!!cfg.fast;
+  $("#s-sepopts").checked=cfg.sepopts!==false; $("#s-thrift").checked=cfg.thrift!==false;
+  $("#s-pool").value=cfg.pool||"";
+  $("#s-plan").checked=cfg.plan; $("#s-duel").checked=cfg.duel; $("#s-anka").checked=cfg.anka;
+  $("#s-status").checked=cfg.status; $("#s-sound").checked=cfg.sound;
+  $("#s-title").value=cfg.title; $("#s-premise").value=cfg.premise;
+  $$("#s-len button").forEach(b=>b.classList.toggle("on", b.dataset.v===cfg.len));
+  $("#m-set").classList.add("on");
+}
+$("#s-chaos").oninput = e => $("#s-lb-chaos").textContent = CHAOS_LB[+e.target.value];
+$("#s-temp").oninput  = e => $("#s-lb-temp").textContent  = (+e.target.value).toFixed(2);
+$$("#s-len button").forEach(b=>b.onclick=()=>{ $$("#s-len button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); });
+$("#s-save").onclick = () => {
+  cfg.key = $("#s-key").value.trim();
+  cfg.model = $("#s-model").value.trim() || cfg.model;
+  cfg.chaos = +$("#s-chaos").value; cfg.temp = +$("#s-temp").value;
+  cfg.cheat=$("#s-cheat").checked; cfg.bigroll=$("#s-bigroll").checked; cfg.bigTables=$("#s-bigtables").checked; cfg.fast=$("#s-fast").checked; cfg.sepopts=$("#s-sepopts").checked; cfg.thrift=$("#s-thrift").checked; cfg.pool=$("#s-pool").value;
+  cfg.plan=$("#s-plan").checked; cfg.duel=$("#s-duel").checked; cfg.anka=$("#s-anka").checked;
+  cfg.status=$("#s-status").checked; cfg.sound=$("#s-sound").checked;
+  cfg.title=$("#s-title").value.trim(); cfg.premise=$("#s-premise").value.trim();
+  cfg.len = ($("#s-len button.on")||{dataset:{v:"mid"}}).dataset.v;
+  saveCfg(); $("#m-set").classList.remove("on"); render(); paintFast();
+  if(!busy){ const t=lastTurn(); if(t && !t.rolled && !t.manual) dockRoll(); }
+  toast("已保存");
+};
+$("#s-wipe").onclick = () => {
+  if(!confirm("清除本机存档、设置和 API Key？此操作不可撤销。")) return;
+  LS.del(SAVE); LS.del(CFGK); location.reload();
+};
+$$("[data-close]").forEach(b=>b.onclick=()=>$("#m-set").classList.remove("on"));
+$$("[data-close2]").forEach(b=>b.onclick=()=>$("#m-led").classList.remove("on"));
+$("#m-set").onclick = e=>{ if(e.target.id==="m-set") $("#m-set").classList.remove("on"); };
+$("#m-led").onclick = e=>{ if(e.target.id==="m-led") $("#m-led").classList.remove("on"); };
+$("#btn-settings").onclick = openSettings;
+$("#btn-ledger").onclick = openLedger;
+function paintFast(){ $("#btn-fast").classList.toggle("hot", !!cfg.fast); }
+$("#btn-fast").onclick = () => {
+  cfg.fast = !cfg.fast; saveCfg(); paintFast();
+  toast(cfg.fast ? "⚡ 快速模式：跳过掷骰动画" : "已恢复完整掷骰动画");
+};
+$("#btn-export").onclick = exportMD;
+$("#btn-new").onclick = () => {
+  if(game.turns.length && !confirm("放弃当前这局，回到设置页？（当前存档会被覆盖）")) return;
+  if(ctrl) ctrl.abort();
+  LS.del(SAVE);
+  game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null };
+  $("#game").style.display="none"; $("#setup").style.display="";
+  fillSetup(); window.scrollTo(0,0);
+};
+
+function fillSetup(){
+  $("#f-key").value=cfg.key; $("#f-model").value=cfg.model;
+  $("#f-title").value=cfg.title; $("#f-premise").value=cfg.premise;
+  $("#f-chaos").value=cfg.chaos; $("#lb-chaos").textContent=CHAOS_LB[cfg.chaos];
+  $("#f-temp").value=cfg.temp; $("#lb-temp").textContent=(+cfg.temp).toFixed(2);
+  $("#f-mem").value=cfg.mem; $("#lb-mem").textContent=cfg.mem;
+  $("#f-chargen").checked=cfg.chargen; $("#f-cheat").checked=cfg.cheat;
+  $("#f-bigroll").checked=cfg.bigroll!==false; $("#f-bigtables").checked=!!cfg.bigTables;
+  $("#f-fast").checked=!!cfg.fast; $("#f-sepopts").checked=cfg.sepopts!==false;
+  $("#f-thrift").checked=cfg.thrift!==false;
+  $("#f-pool").value=cfg.pool||"";
+  $("#f-plan").checked=cfg.plan; $("#f-duel").checked=cfg.duel; $("#f-anka").checked=cfg.anka;
+  $("#f-status").checked=cfg.status; $("#f-sound").checked=cfg.sound;
+  $$("#f-len button").forEach(b=>b.classList.toggle("on", b.dataset.v===cfg.len));
+  markChips(); paintMode();
+}
+function paintMode(){
+  const box = $("#modebox"); if(!box) return;
+  const own = !!($("#f-key").value || "").trim();
+  const mi = $("#f-model"), chips = $("#modelchips");
+  if(!hasProxy()){
+    box.className = "mode own";
+    box.innerHTML = "本页没有配置代理，需要填你自己的 <b>OpenRouter API Key</b>。key 只存在你自己的浏览器里。";
+  } else if(own){
+    box.className = "mode own";
+    box.innerHTML = "正在使用<b>你自己的 key</b>：直连 OpenRouter，模型随便挑，费用走你自己的账号。";
+  } else {
+    box.className = "mode";
+    box.innerHTML = "正在使用<b>内置额度</b>：请求经代理转发，模型固定为 <b>" + PROXY_MODEL + "</b>。<br>"
+      + "想换模型，在下面填你自己的 OpenRouter key。";
+  }
+  const lock = hasProxy() && !own;
+  if(mi){ mi.disabled = lock; mi.style.opacity = lock ? .45 : 1; if(lock) mi.value = PROXY_MODEL; }
+  if(chips) chips.style.display = lock ? "none" : "";
+  const lk = $("#lb-key");
+  if(lk) lk.textContent = hasProxy() ? "OpenRouter API Key（可选）" : "OpenRouter API Key";
+}
+function markChips(){
+  $$("#presets .chip").forEach(c=>c.classList.toggle("on", PRESETS[+c.dataset.i].p === $("#f-premise").value.trim()));
+  $$("#modelchips .chip").forEach(c=>c.classList.toggle("on", c.dataset.id === $("#f-model").value.trim()));
+}
+$("#presets").innerHTML = PRESETS.map((p,i)=>'<button class="chip" data-i="'+i+'">'+esc(p.n)+'</button>').join("");
+$$("#presets .chip").forEach(c=>c.onclick=()=>{ const p=PRESETS[+c.dataset.i];
+  $("#f-title").value=p.t; $("#f-premise").value=p.p; markChips(); });
+$("#modelchips").innerHTML = RECO.map(m=>'<button class="chip" data-id="'+m.id+'" title="'+esc(m.id)+'">'
+  +esc(m.n)+' <span style="opacity:.6">· '+esc(m.d)+'</span></button>').join("");
+$$("#modelchips .chip").forEach(c=>c.onclick=()=>{ $("#f-model").value=c.dataset.id; markChips(); });
+$("#f-model").oninput = markChips; $("#f-premise").oninput = markChips;
+$("#f-key").oninput = paintMode;
+$("#f-chaos").oninput = e=>$("#lb-chaos").textContent=CHAOS_LB[+e.target.value];
+$("#f-temp").oninput  = e=>$("#lb-temp").textContent=(+e.target.value).toFixed(2);
+$("#f-mem").oninput   = e=>$("#lb-mem").textContent=e.target.value;
+$$("#f-len button").forEach(b=>b.onclick=()=>{ $$("#f-len button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); });
+
+$("#btn-start").onclick = () => {
+  const premise = $("#f-premise").value.trim();
+  if(!premise){ toast("先写一句前提设定吧"); $("#f-premise").focus(); return; }
+  const key = $("#f-key").value.trim();
+  if(!key && !hasProxy()){ toast("需要一个 OpenRouter API Key"); $("#f-key").focus(); return; }
+  Object.assign(cfg, { key, premise,
+    model: $("#f-model").value.trim() || "~google/gemini-flash-latest",
+    title: $("#f-title").value.trim() || premise.split(/[。\n，]/)[0].slice(0,20),
+    chaos:+$("#f-chaos").value, temp:+$("#f-temp").value, mem:+$("#f-mem").value,
+    chargen:$("#f-chargen").checked, cheat:$("#f-cheat").checked, bigroll:$("#f-bigroll").checked, bigTables:$("#f-bigtables").checked, fast:$("#f-fast").checked, sepopts:$("#f-sepopts").checked, thrift:$("#f-thrift").checked, pool:$("#f-pool").value,
+    plan:$("#f-plan").checked, duel:$("#f-duel").checked, anka:$("#f-anka").checked,
+    status:$("#f-status").checked, sound:$("#f-sound").checked,
+    len: ($("#f-len button.on")||{dataset:{v:"mid"}}).dataset.v });
+  saveCfg();
+  game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null };
+  enterGame(); nextTurn();
+};
+function enterGame(){ $("#setup").style.display="none"; $("#game").style.display="flex";
+  render(); paintFast(); window.scrollTo(0,0); }
+
+function offerResume(){
+  const g = loadGame(); if(!g) return;
+  const story = g.turns.filter(t=>!t.chargen);
+  const last = story[story.length-1];
+  $("#resume-wrap").innerHTML =
+    '<div class="panel" style="margin-top:16px;padding:18px">'
+    + '<div style="font-size:13px;color:var(--tx2);margin-bottom:12px">找到存档：<b style="color:var(--pink2)">'
+    + esc(cfg.title||"未命名安科")+'</b> · 已进行 '+story.length+' 回'
+    + (last && !last.rolled && !last.manual ? "（等待掷骰）" : "")+'</div>'
+    + '<button class="btn" style="width:100%" id="btn-resume">继续上次的安科</button></div>';
+  $("#btn-resume").onclick = () => {
+    game = Object.assign({ turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null }, g);
+    enterGame();
+    const t = lastTurn();
+    if(t && !t.rolled && !t.manual) dockRoll(); else nextTurn();
+    scroll();
+  };
+}
+async function loadModels(){
+  try{
+    const d = (await (await fetch(API+"/models")).json()).data || [];
+    const u = d.filter(m=>!/:batch$/.test(m.id) && !/-image|image-|tts|whisper|embed/.test(m.id))
+                .sort((a,b)=>a.id.localeCompare(b.id));
+    $("#modellist").innerHTML = u.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+' — $'
+      +(+m.pricing.prompt*1e6).toFixed(2)+'/$'+(+m.pricing.completion*1e6).toFixed(2)+' per M</option>').join("");
+    $("#lb-model").textContent = u.length+" 个模型可选，可直接输入 ID";
+  }catch(e){ $("#lb-model").textContent = "模型列表载入失败，可手动输入 ID"; }
+}
+window.addEventListener("keydown", e=>{
+  if(e.target.matches("input,textarea") || $("#m-set").classList.contains("on")) return;
+  if((e.key===" "||e.key==="Enter") && $("#btn-roll")){ e.preventDefault(); doRoll(); }
+});
+
+loadCfg(); fillSetup(); offerResume(); loadModels();
+</script>
+</body>
+</html>
