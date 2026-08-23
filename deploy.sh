@@ -14,4 +14,4 @@ git add -A
 git commit -m "${1:-update}" || echo "(没有变更)"
 git push -u origin main
 echo
-echo "完成。GitHub Pages 地址： https://2308858595.github.io/anko/"
+echo "完成。GitHub Pages 地址： http://anko.kapp.pp.ua"

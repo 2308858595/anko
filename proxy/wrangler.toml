@@ -6,7 +6,7 @@ compatibility_date = "2026-01-01"
 # 部署好 GitHub Pages 之后，把这里改成你的站点地址，例如：
 #   ALLOW_ORIGIN = "https://2308858595.github.io"
 # 这样别的网站就没法盗用你的代理。留 "*" 表示不限来源。
-ALLOW_ORIGIN = "*"
+ALLOW_ORIGIN = "http://anko.kapp.pp.ua,https://anko.kapp.pp.ua,https://2308858595.github.io,http://localhost:8777"
 
 # 可选：经 AI Gateway 转发（缓存 / 分析 / 额外限流）。key 依然只在本 Worker 里。
 # AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>"

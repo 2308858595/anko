@@ -35,10 +35,13 @@ const bad = (msg, status, o) =>
 
 export default {
   async fetch(req, env) {
-    const allow = env.ALLOW_ORIGIN || "*";
+    // ALLOW_ORIGIN 支持逗号分隔多个来源，方便本地调试与线上共存
+    const allowList = (env.ALLOW_ORIGIN || "*").split(",").map(x => x.trim()).filter(Boolean);
+    const anyOrigin = allowList.includes("*");
     const origin = req.headers.get("Origin") || "";
-    if (allow !== "*" && origin && origin !== allow) return bad("origin not allowed", 403, allow);
-    const co = allow === "*" ? (origin || "*") : allow;
+    if (!anyOrigin && origin && !allowList.includes(origin))
+      return bad("origin not allowed", 403, allowList[0]);
+    const co = anyOrigin ? (origin || "*") : (allowList.includes(origin) ? origin : allowList[0]);
 
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(co) });
     if (req.method !== "POST")    return bad("POST only", 405, co);

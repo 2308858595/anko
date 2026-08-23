@@ -614,7 +614,7 @@ const API = "https://openrouter.ai/api/v1";
    默认请求打到自己的 Cloudflare Worker，key 只存在 Worker 的 secret 里，
    浏览器读不到、git 历史里也没有。部署 proxy/ 之后把地址填到下面。
    访客也可以在设置里填自己的 OpenRouter key —— 那样直连、模型随便挑、费用走他们自己。 */
-const PROXY_URL    = "";                            // 例："https://anko-proxy.你的账号.workers.dev"
+const PROXY_URL    = "https://anko-proxy.account-85d.workers.dev";                            // 例："https://anko-proxy.你的账号.workers.dev"
 const PROXY_MODEL  = "~google/gemini-flash-latest"; // 代理端白名单里的模型
 const hasProxy = () => !!PROXY_URL;
 const viaProxy = () => hasProxy() && !(cfg.key || "").trim();
