@@ -1774,7 +1774,6 @@ function dockRoll(){
   const ai = $("#anka-in");
   if(ai){ $("#btn-anka").onclick = doAnka; ai.onkeydown = e=>{ if(e.key==="Enter") doAnka(); }; }
 }
-const scroll = sm => window.scrollTo({ top: document.body.scrollHeight, behavior: sm?"smooth":"auto" });
 
 /* ============================================================
    回合生成
@@ -2010,9 +2009,6 @@ async function nextTurn(preset){
   if(busy) return;
   busy = true; ctrl = new AbortController();
   const no = storyTurns().length + 1;
-  let stick = true;
-  const onScroll = () => { stick = (window.innerHeight+window.scrollY) >= document.body.scrollHeight-140; };
-  window.addEventListener("scroll", onScroll, {passive:true});
 
   try{
     let checks = [], duel = null, extra = null, incident = null;
@@ -2024,7 +2020,6 @@ async function nextTurn(preset){
       $("#btn-stop0").onclick = ()=>ctrl.abort();
       live('<div class="turn"><div class="tno"><span class="n">开局骰</span></div>'
         + '<div class="load"><span class="dots"><i></i><i></i><i></i></span>导游正在决定这个世界和主角是什么样子…</div></div>');
-      scroll();
 
       const cg = await streamChat([{role:"system",content:"x"},{role:"user",content:"开始开局骰。"}],
         ()=>{}, ctrl.signal, chargenPrompt());
@@ -2053,7 +2048,6 @@ async function nextTurn(preset){
           const el = tmp.firstElementChild;
           if(el){ el.classList.add("pop"); cgbox.insertBefore(el, cgload); }
         }
-        if(stick) scroll();
         await sleep(cfg.fast ? 40 : 260);
       }
       if(cgload) cgload.remove();
@@ -2062,7 +2056,6 @@ async function nextTurn(preset){
       game.turns.push({ no:0, chargen:true, scene:[], narration:"", checks:all, options:[],
                         stats:[], clues:[], affs:[], raw:"", rolled:null, chaos:null, manual:null });
       live(""); render(); saveGame();
-      if(stick) scroll();
     }
 
     /* ---- 重写本回合：判定已经摇好，直接进书写阶段 ---- */
@@ -2080,7 +2073,6 @@ async function nextTurn(preset){
       $("#btn-stop").onclick = ()=>ctrl.abort();
       live('<div class="turn"><div class="tno"><span class="n">第 '+no+' 回</span></div>'
         + '<div class="load"><span class="dots"><i></i><i></i><i></i></span>判定阶段：主持人正在声明这一回要交给骰子的事…</div></div>');
-      scroll();
 
       /* 关键：历史里最后一条 user 是「请演绎出来，写第 N 回」，会和判定阶段的
          system 指令打架。回合一多，模型就照着写正文去了、判定全空。
@@ -2125,13 +2117,11 @@ async function nextTurn(preset){
             const el = tmp.firstElementChild;
             if(el){ el.classList.add("pop"); box.insertBefore(el, ld); }
           }
-          if(stick) scroll();
           await sleep(cfg.fast ? 40 : 320);
         }
         if(duel){
           duel.res = simDuel(duel.us, duel.them);
           await revealDuel(duel, box, ld);
-          if(stick) scroll();
         }
         if(ld) ld.remove();
         liveLast = null;   // 下一阶段要重新接管这块
@@ -2194,7 +2184,6 @@ async function nextTurn(preset){
               + '</span><span class="t">'+esc(o)+'</span></div>' : "").join("") + '</div>'
         : "";
       if(lvOpts && oh!==lastO){ lvOpts.innerHTML = oh; lastO = oh; }
-      if(stick) scroll();
     }, ctrl.signal);
     bill(usage);
 
@@ -2249,7 +2238,6 @@ async function nextTurn(preset){
 
     rebuildLedger();
     live(""); render(); dockRoll(); saveGame();
-    if(stick) scroll(true);
   }catch(e){
     live("");
     const aborted = e.name === "AbortError";
@@ -2260,7 +2248,6 @@ async function nextTurn(preset){
     $("#e-retry").onclick = ()=>nextTurn();
     $("#e-set").onclick = openSettings;
   }finally{
-    window.removeEventListener("scroll", onScroll);
     busy = false; ctrl = null;
   }
 }
@@ -2306,7 +2293,7 @@ async function doRoll(forced){
     res.classList.add("on"); await sleep(cfg.fast?600:1250);
   }
   ov.classList.remove("on");
-  render(); saveGame(); busy=false; scroll(true); nextTurn();
+  render(); saveGame(); busy=false; nextTurn();
 }
 function pickOption(i){
   const t = lastTurn();
@@ -2573,7 +2560,6 @@ function offerResume(){
     enterGame();
     const t = lastTurn();
     if(t && !t.rolled && !t.manual) dockRoll(); else nextTurn();
-    scroll();
   };
 }
 async function loadModels(){
