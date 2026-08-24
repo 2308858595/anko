@@ -109,6 +109,8 @@ header .ttl{font-family:var(--serif);font-size:17px;font-weight:700;white-space:
   text-overflow:ellipsis;max-width:min(40vw,360px)}
 header .meta{display:flex;gap:7px;align-items:center;color:var(--tx3);font-size:11.5px;font-family:var(--mono)}
 .tag{padding:3px 9px;border-radius:20px;background:var(--card2);border:1px solid var(--line);white-space:nowrap}
+.tag.warn{color:var(--gold);border-color:rgba(255,200,97,.42)}
+.tag.over{color:var(--red);border-color:rgba(255,107,107,.5);background:rgba(255,107,107,.13)}
 header .sp{flex:1}
 .hbtns{display:flex;gap:4px}
 .btn.hot{color:var(--cyan);background:rgba(107,213,225,.14);border-color:rgba(107,213,225,.45)}
@@ -439,6 +441,10 @@ header .sp{flex:1}
           </label>
         </div>
         <label class="switch" style="margin-bottom:13px">
+          <input type="checkbox" id="f-autocompact" checked><span class="track"></span>
+          <span style="font-size:13.5px"><b style="color:var(--green)">自动压缩前情</b>：更早的回合攒够长度就交给模型写成一份「前情提要」，之后不再逐回合进 prompt。上下文不随回合数一直变长，长篇不会越玩越贵（页面上的正文一个字都不少）</span>
+        </label>
+        <label class="switch" style="margin-bottom:13px">
           <input type="checkbox" id="f-chargen" checked><span class="track"></span>
           <span style="font-size:13.5px"><b style="color:var(--gold)">开局骰</b>：开场先摇世界观与主角八项属性，之后属性会挂进判定</span>
         </label>
@@ -562,6 +568,8 @@ header .sp{flex:1}
     <span style="font-size:13.5px">省钱模式（关闭模型思考）</span></label>
   <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-sepopts"><span class="track"></span>
     <span style="font-size:13.5px">走向单独生成（治重复感）</span></label>
+  <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-autocompact"><span class="track"></span>
+    <span style="font-size:13.5px">自动压缩前情（长篇省钱，页面正文不受影响）</span></label>
   <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-fast"><span class="track"></span>
     <span style="font-size:13.5px">⚡ 快速模式（跳过掷骰动画，直接出结果）</span></label>
   <label class="switch" style="margin-bottom:12px"><input type="checkbox" id="s-cheat"><span class="track"></span>
@@ -667,6 +675,22 @@ function sessionId(){
   return cleanTitle().slice(0, Math.max(1, SID_CAP - id.length - 3)) + " · " + id;
 }
 
+/* ── 一局的花销上限 ───────────────────────────────────────────────
+   game.cost 是这一局的累计花销（每次调用的 usage 结算进去，见 bill）。
+   到顶就一个请求都不再发——不是提醒，是硬停。新开一局重新计数。 */
+const COST_CAP = 2;
+const overCap  = () => (game.cost || 0) >= COST_CAP;
+/* 预算和「用户按了停止」是一类事：别再往下走，也别重试。
+   两个吞异常继续跑的地方（走向重试、D10 表升级）必须原样把它抛出去，
+   否则会被当成一次普通失败，接着再发一个注定被拦下的请求。 */
+function budgetErr(){
+  const e = new Error("这一局已经花掉 $" + (game.cost||0).toFixed(4) + "，到了 $"
+    + COST_CAP.toFixed(2) + " 的上限。\n\n可以「导出」把这篇存下来，然后新开一局。");
+  e.name = "BudgetError";
+  return e;
+}
+const fatalErr = e => e.name === "AbortError" || e.name === "BudgetError";
+
 const PRESETS = [
   { n:"萌百娘上初中", t:"萌百娘的初中生活",
     p:"萌娘百科的看板娘「萌百娘」升入初中，今天是进入新学校的第一天。她的同桌会是谁呢……？\n轻松向校园日常喜剧，偶尔混进一点点超展开。" },
@@ -745,8 +769,9 @@ function affMap(raw){
 
 let cfg = { key:"", model:"~google/gemini-flash-latest", title:"", premise:"",
   chaos:3, len:"mid", temp:1, mem:3, plan:true, duel:true, anka:true, status:true, sound:true,
-  chargen:true, cheat:false, bigroll:true, bigTables:false, fast:false, sepopts:true, thrift:true, pool:"", sid:"" };
-let game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null };
+  chargen:true, cheat:false, bigroll:true, bigTables:false, fast:false, sepopts:true, thrift:true,
+  autocompact:true, pool:"", sid:"" };
+let game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null, digest:null };
 let busy = false, ctrl = null;
 
 const saveCfg  = () => LS.set(CFGK, JSON.stringify(cfg));
@@ -1363,6 +1388,7 @@ cfg.sepopts ? "" : [
 `## 写作要求`,
 `- 中文，网络小说 / 轻小说笔法，画面感强，节奏明快，允许吐槽和玩梗。`,
 `- 尊重既成事实：已掷出的剧情不可推翻、不可假装没发生。`,
+game.digest ? "- 历史开头的 ===前情提要=== 是更早那些回合的压缩记录，视同已经写过的正文：里面的人物、关系、伏笔都要接住，不能当成没发生。" : "",
 `- 不要替读者做决定，不要预告哪个选项更好。`,
 ``,
 `## 输出格式（严格遵守，不要有额外说明）`,
@@ -1504,24 +1530,98 @@ function checksToPrompt(checks, duel, incident){
 
 const storyTurns = () => game.turns.filter(t=>!t.chargen);
 const lastTurn = () => { const t = storyTurns(); return t[t.length-1]; };
-function buildMsgs(extra){
-  const m = [{role:"system", content: writeSys()}, {role:"user", content: openUser()}];
+
+/* ── 自动压缩前情（autocompaction）──────────────────────────────
+   本来只有一档「完整保留最近 N 回」：更早的回合退成一行正文。可正文本身
+   一个字都没少，上下文照样随回合数线性变长——第 40 回的每次调用都要把前
+   39 回的正文重付一遍钱。
+
+   现在压缩区攒够 COMPACT_CHARS 就整段交给模型写成一份「前情提要」，那些
+   回合从此不再进 prompt，只留提要。提要是**增量**的：下一次拿上一份提要
+   加新折叠的回合重写一份，所以 prompt 有上界，长篇不会越玩越贵。
+
+   只影响发给模型的东西。页面上的正文、存档、导出都一个字不动。 */
+const COMPACT_CHARS = 9000;   // 压缩区超过这么多字就折叠，约 10～14 回
+const DIGEST_CHARS  = 1400;   // 提要写多长
+const MEM_BLOCK     = 4;      // 压缩边界对齐的步长，见下
+
+/* 历史切成三段：[0,folded) 已折进提要、[folded,boundary) 只留正文、[boundary,) 完整原文 */
+function memSplit(){
   const ts = storyTurns();
   const keep = Math.max(1, cfg.mem|0);
-  /* 压缩边界对齐到 BLOCK 的倍数。
+  const folded = Math.max(0, Math.min(game.digest ? game.digest.upto|0 : 0, ts.length));
+  /* 压缩边界对齐到 MEM_BLOCK 的倍数。
      以前是纯滑动窗口，每回合都有一个回合从「完整原文」翻成「压缩正文」，
-     等于每回合都改写历史中段，前缀缓存必然失效。对齐之后边界每 BLOCK 回合才动一次。 */
-  const BLOCK = 4;
-  const boundary = Math.max(0, Math.floor(Math.max(0, ts.length - keep) / BLOCK) * BLOCK);
+     等于每回合都改写历史中段，前缀缓存必然失效。对齐之后边界每 4 回才动一次。
+     取 max 是因为撤回重写会让边界倒退，不能退到已经折进提要的回合里去。 */
+  const aligned = Math.floor(Math.max(0, ts.length - keep) / MEM_BLOCK) * MEM_BLOCK;
+  return { ts, folded, boundary: Math.max(folded, aligned) };
+}
+
+function buildMsgs(extra){
+  const m = [{role:"system", content: writeSys()}, {role:"user", content: openUser()}];
+  const { ts, folded, boundary } = memSplit();
+  if(folded){
+    // 提要每压缩一次才变一次，是很稳的前缀，值得单独占一个缓存断点
+    m.push({ role:"assistant", content: "===前情提要（第 1～"+folded+" 回，系统压缩）===\n"+game.digest.text });
+    m[m.length-1]._cache = true;
+  }
   ts.forEach((t,i)=>{
+    if(i < folded) return;                 // 已经在提要里了，别再塞一遍
     const full = i >= boundary;
     m.push({ role:"assistant", content: full ? t.raw : "===正文===\n"+t.narration });
     if(t.rolled || t.manual) m.push({ role:"user", content: rollUser(t) });
-    // 压缩区的最后一条打缓存断点：这一段每 BLOCK 回合才变一次，正好可缓存
+    // 压缩区的最后一条打缓存断点：这一段每 4 回才变一次，正好可缓存
     if(i === boundary-1) m[m.length-1]._cache = true;
   });
   if(extra) m.push({ role:"user", content: extra });
   return m;
+}
+
+function digestPrompt(ts, folded, boundary, prev){
+  const L = [];
+  L.push("下面是一篇正在连载的互动小说《"+(cfg.title||"未命名安科")+"》的前半部分。",
+         "把它压缩成一份**前情提要**，交给主持人接着往下写。", "");
+  if(prev) L.push("【现有提要（第 1～"+folded+" 回）】", prev, "");
+  L.push("【要并进来的新内容（第 "+(folded+1)+"～"+boundary+" 回）】");
+  for(let i=folded;i<boundary;i++) L.push("〔第 "+ts[i].no+" 回〕" + String(ts[i].narration||"").trim());
+  L.push("", "要求：",
+    "· 输出一份覆盖第 1～"+boundary+" 回的**完整**提要，不是只写新增那几回——现有提要里该留的信息要留下来。",
+    "· "+DIGEST_CHARS+" 字以内。按时间顺序写成连贯的叙述，不要分点罗列。",
+    "· 必须保住：出场人物和他们之间的关系、主角此刻的处境和手上的东西、已经发生的关键转折、还没揭晓的伏笔与悬念。",
+    "· 人名、地名、专有名词一律照抄原文，不要改写，也不要新编。",
+    "· 只写已经发生的事。不要预测后续，不要评论，不要加标题，不要写导游吐槽。");
+  return L.join("\n");
+}
+
+/* 该压缩就压缩，不该就立刻返回 false（每回合都会问一次，一般十来回才真跑一次）。
+   压缩本身也是一次调用，也要计费，所以别在没必要的时候跑。 */
+let compacting = false;
+async function autocompact(signal, onStart){
+  if(cfg.autocompact === false || compacting) return false;
+  const { ts, folded, boundary } = memSplit();
+  if(boundary <= folded) return false;
+  let chars = 0;
+  for(let i=folded;i<boundary;i++) chars += String(ts[i].narration||"").length;
+  if(chars < COMPACT_CHARS) return false;
+
+  compacting = true;
+  try{
+    if(onStart) onStart();
+    const prev = game.digest ? game.digest.text : "";
+    // 单条 user 消息、不带 system：这段输入折叠完就不会再出现，缓存它没意义
+    const r = await streamChat([{ role:"user", content: digestPrompt(ts, folded, boundary, prev) }],
+                               ()=>{}, signal);
+    bill(r.usage);
+    const text = r.text.replace(/^[#*\s]*前情提要[（(][^）)]*[）)]?\s*[:：]?/,"")
+                       .replace(/^[#*\s]*前情提要\s*[:：]?/,"").trim();
+    // 宁可这次不压，也不能把一句废话当成前 20 回的记忆塞进去
+    if(text.length < 60) throw new Error("提要太短（"+text.length+" 字），这次不压");
+    game.digest = { upto: boundary, text, from: folded, chars };
+    saveGame();
+    toast("已把前 "+boundary+" 回压成前情提要");
+    return true;
+  } finally { compacting = false; }
 }
 
 /* ============================================================
@@ -1636,6 +1736,8 @@ function narrHTML(t, live, editable){
 const cacheBlock = text => [{ type:"text", text:String(text), cache_control:{ type:"ephemeral" } }];
 
 async function streamChat(msgs, onText, signal, sys){
+  // 唯一的出口闸门：入口处也拦（见 nextTurn / dockRoll），这里是兜底
+  if(overCap()) throw budgetErr();
   const out = msgs.map(m => (m && m._cache)
     ? { role:m.role, content: cacheBlock(m.content) }
     : { role:m.role, content:m.content });
@@ -1690,8 +1792,13 @@ async function streamChat(msgs, onText, signal, sys){
 }
 function bill(usage){
   if(!usage) return;
+  /* BYOK 的请求 usage.cost 是 0（OpenRouter 不收推理费），真正的钱在
+     cost_details.upstream_inference_cost 里；非 BYOK 反过来，upstream 那项没有。
+     实测一次 BYOK 调用：cost:0 + upstream_inference_cost:0.0014955。
+     原来写的是 cost || upstream，两边都非 0 的时候（BYOK 手续费）会把上游那
+     一大笔整个漏掉——上限就成了摆设，所以相加。 */
   const cd = usage.cost_details || {};
-  game.cost += (+usage.cost || +cd.upstream_inference_cost || 0);
+  game.cost += (+usage.cost || 0) + (+cd.upstream_inference_cost || 0);
   game.tok  = (game.tok||0) + (+usage.total_tokens || 0);
 }
 
@@ -1702,8 +1809,16 @@ function hud(){
   $("#g-title").textContent = cfg.title || "未命名安科";
   $("#g-turn").textContent  = "第 " + storyTurns().length + " 回";
   $("#g-model").textContent = cfg.model.split("/").pop();
-  $("#g-cost").textContent  = "$" + game.cost.toFixed(4)
+  const ct = $("#g-cost");
+  ct.textContent = "$" + game.cost.toFixed(4) + " / $" + COST_CAP.toFixed(2)
     + (game.tok ? " · " + (game.tok>=1000 ? (game.tok/1000).toFixed(1)+"k" : game.tok) + " tok" : "");
+  // 到七成先变黄、到顶变红——别等按下去才发现这局已经停了
+  const ratio = (game.cost||0) / COST_CAP;
+  ct.classList.toggle("warn", ratio >= .75 && ratio < 1);
+  ct.classList.toggle("over", ratio >= 1);
+  ct.title = "这一局的累计花销。上限 $" + COST_CAP.toFixed(2)
+    + "，到顶就不再发任何请求；新开一局重新计数。"
+    + (game.digest ? "\n前 " + game.digest.upto + " 回已压成前情提要。" : "");
 }
 function sheetHTML(s){
   if(!s) return "";
@@ -1789,7 +1904,18 @@ function render(){
 let liveLast = null;
 const live = h => { const e=$("#live"); if(e && h!==liveLast){ e.innerHTML=h; liveLast=h; } };
 function dock(h){ const d=$("#dock"); if(d) d.innerHTML = h ? '<div class="dock"><div class="in">'+h+'</div></div>' : ""; }
+/* 到上限之后掷骰按钮就不该再出现了——留着只会让人点一下才被拒 */
+function dockBudget(){
+  dock('<div class="err"><b>这一局的 $'+COST_CAP.toFixed(2)+' 用完了</b>'
+    + '<div class="m">已经花掉 $'+(game.cost||0).toFixed(4)+'。一局的花销上限是硬的，'
+    + '到这里就不再发任何请求了。<br>把这篇导出留着，然后新开一局——新的一局重新计数。</div>'
+    + '<div class="btns"><button class="btn primary sm" id="bud-exp">导出这篇</button>'
+    + '<button class="btn sm" id="bud-new">新开一局</button></div></div>');
+  $("#bud-exp").onclick = exportMD;
+  $("#bud-new").onclick = () => $("#btn-new").click();
+}
 function dockRoll(){
+  if(overCap()) return dockBudget();
   dock('<button class="btn primary rollbtn" id="btn-roll">🎲 掷骰决定命运 <span class="d">1D10</span></button>'
     + (cfg.cheat ? '<div class="cheatbar"><span class="lb">作弊：直接指定点数</span>'
         + '<input id="cheat-n" type="number" min="1" max="10" placeholder="1-10">'
@@ -1926,7 +2052,7 @@ async function escalateTable(c, signal, onLevel){
     try{
       r = await streamChat([{role:"system",content:"x"},{role:"user",content:"给出升级后的选项。"}],
                            ()=>{}, signal, escPrompt(c, prev, depth));
-    }catch(e){ if(e.name==="AbortError") throw e; break; }
+    }catch(e){ if(fatalErr(e)) throw e; break; }
     bill(r.usage);
     const inner = grabAngle(r.text);
     if(!inner) break;
@@ -2006,6 +2132,7 @@ function rebuildLedger(){
    mode 'recheck' —— 重掷本回合的判定，再重写
    mode 'roll'    —— 改上一回的 1D10 点数，整回重来（含重新申请判定） */
 async function redoTurn(mode){
+  if(overCap()) return dockBudget();
   if(busy) return;
   const ts = storyTurns();
   const cur = ts[ts.length-1];
@@ -2040,11 +2167,26 @@ function rollIncident(){
 /* preset：重写本回合时把已经摇好的判定原样带回来，跳过判定阶段 */
 async function nextTurn(preset){
   if(busy) return;
+  if(overCap()) return dockBudget();
   busy = true; ctrl = new AbortController();
   const no = storyTurns().length + 1;
 
   try{
     let checks = [], duel = null, extra = null, incident = null;
+
+    /* ---- 自动压缩前情（攒够了才跑，一般十来回一次） ---- */
+    try{
+      await autocompact(ctrl.signal, () => {
+        dock('<div class="dockmsg">前面的剧情有点长了，正在压成一份前情提要…</div>'
+          + '<button class="btn" style="width:100%;margin-top:8px" id="btn-stopc">停止</button>');
+        $("#btn-stopc").onclick = ()=>ctrl.abort();
+      });
+    }catch(e){
+      if(fatalErr(e)) throw e;
+      // 压缩失败不该连累这一回：这次就用完整历史往下写，下一回再试
+      try{ console.warn("[安科] 前情压缩失败，本回合用完整历史：", e); }catch(_){}
+      toast("前情压缩失败，这回先用完整历史");
+    }
 
     /* ---- 开局骰（仅第 1 回之前） ---- */
     if(cfg.chargen && !game.sheet && no === 1){
@@ -2248,7 +2390,7 @@ async function nextTurn(preset){
           lastRaw = r.raw;
           if(r.list.filter(Boolean).length >= 4){ got = r.list; break; }
         }catch(e){
-          if(e.name==="AbortError") throw e;
+          if(fatalErr(e)) throw e;   // 停止 / 到上限：别重试，直接抛出去
           lastErr = e;
         }
       }
@@ -2273,6 +2415,8 @@ async function nextTurn(preset){
     live(""); render(); dockRoll(); saveGame();
   }catch(e){
     live("");
+    // 到上限了就别摆「重试」按钮——按下去只会再被拦一次
+    if(e.name === "BudgetError"){ render(); dockBudget(); return; }
     const aborted = e.name === "AbortError";
     dock('<div class="err"><b>'+(aborted?"已停止":"出错了")+'</b>'
       + (aborted ? "" : '<div class="m">'+esc(e.message)+'</div>')
@@ -2396,6 +2540,17 @@ function openLedger(){
   h += game.clues.length
     ? game.clues.map(c=>'<div class="clue"><span class="h">[ 第 '+c.turn+' 回 ]</span>'+esc(c.text)+'</div>').join("")
     : '<div style="color:var(--tx3);font-size:13px">还没有收集到线索。</div>';
+  /* 前 N 回已经不在 prompt 里了，模型只剩这段记忆——摊开来给人看，
+     万一提要漏了要紧的东西，还能自己在安价里补一句。 */
+  if(game.digest){
+    h += '<h3 style="margin:20px 0 10px;font-size:14px;color:var(--gold)">前情提要（第 1～'
+       + game.digest.upto + ' 回）</h3>';
+    h += '<div class="note" style="white-space:pre-wrap;line-height:1.8">' + esc(game.digest.text)
+       + '</div><div style="color:var(--tx3);font-size:12px;margin-top:8px">'
+       + '这 ' + game.digest.upto + ' 回的正文已经不再发给模型了（原文 '
+       + (game.digest.chars||0) + ' 字 → 提要 ' + game.digest.text.length
+       + ' 字），它对早期剧情的记忆就是上面这一段。页面上的正文和导出不受影响。</div>';
+  }
   $("#led-body").innerHTML = h;
   $("#m-led").classList.add("on");
 }
@@ -2456,6 +2611,7 @@ function openSettings(){
   $("#s-cheat").checked=cfg.cheat; $("#s-bigroll").checked=cfg.bigroll!==false;
   $("#s-bigtables").checked=!!cfg.bigTables; $("#s-fast").checked=!!cfg.fast;
   $("#s-sepopts").checked=cfg.sepopts!==false; $("#s-thrift").checked=cfg.thrift!==false;
+  $("#s-autocompact").checked=cfg.autocompact!==false;
   $("#s-pool").value=cfg.pool||"";
   $("#s-plan").checked=cfg.plan; $("#s-duel").checked=cfg.duel; $("#s-anka").checked=cfg.anka;
   $("#s-status").checked=cfg.status; $("#s-sound").checked=cfg.sound;
@@ -2470,7 +2626,8 @@ $("#s-save").onclick = () => {
   cfg.key = $("#s-key").value.trim();
   cfg.model = $("#s-model").value.trim() || cfg.model;
   cfg.chaos = +$("#s-chaos").value; cfg.temp = +$("#s-temp").value;
-  cfg.cheat=$("#s-cheat").checked; cfg.bigroll=$("#s-bigroll").checked; cfg.bigTables=$("#s-bigtables").checked; cfg.fast=$("#s-fast").checked; cfg.sepopts=$("#s-sepopts").checked; cfg.thrift=$("#s-thrift").checked; cfg.pool=$("#s-pool").value;
+  cfg.cheat=$("#s-cheat").checked; cfg.bigroll=$("#s-bigroll").checked; cfg.bigTables=$("#s-bigtables").checked; cfg.fast=$("#s-fast").checked; cfg.sepopts=$("#s-sepopts").checked; cfg.thrift=$("#s-thrift").checked;
+  cfg.autocompact=$("#s-autocompact").checked; cfg.pool=$("#s-pool").value;
   cfg.plan=$("#s-plan").checked; cfg.duel=$("#s-duel").checked; cfg.anka=$("#s-anka").checked;
   cfg.status=$("#s-status").checked; cfg.sound=$("#s-sound").checked;
   cfg.title=$("#s-title").value.trim(); cfg.premise=$("#s-premise").value.trim();
@@ -2499,7 +2656,7 @@ $("#btn-new").onclick = () => {
   if(game.turns.length && !confirm("放弃当前这局，回到设置页？（当前存档会被覆盖）")) return;
   if(ctrl) ctrl.abort();
   LS.del(SAVE);
-  game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null };
+  game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null, digest:null };
   $("#game").style.display="none"; $("#setup").style.display="";
   fillSetup(); window.scrollTo(0,0);
 };
@@ -2514,6 +2671,7 @@ function fillSetup(){
   $("#f-bigroll").checked=cfg.bigroll!==false; $("#f-bigtables").checked=!!cfg.bigTables;
   $("#f-fast").checked=!!cfg.fast; $("#f-sepopts").checked=cfg.sepopts!==false;
   $("#f-thrift").checked=cfg.thrift!==false;
+  $("#f-autocompact").checked=cfg.autocompact!==false;
   $("#f-pool").value=cfg.pool||"";
   $("#f-plan").checked=cfg.plan; $("#f-duel").checked=cfg.duel; $("#f-anka").checked=cfg.anka;
   $("#f-status").checked=cfg.status; $("#f-sound").checked=cfg.sound;
@@ -2567,12 +2725,13 @@ $("#btn-start").onclick = () => {
     model: $("#f-model").value.trim() || "~google/gemini-flash-latest",
     title: $("#f-title").value.trim() || premise.split(/[。\n，]/)[0].slice(0,20),
     chaos:+$("#f-chaos").value, temp:+$("#f-temp").value, mem:+$("#f-mem").value,
+    autocompact:$("#f-autocompact").checked,
     chargen:$("#f-chargen").checked, cheat:$("#f-cheat").checked, bigroll:$("#f-bigroll").checked, bigTables:$("#f-bigtables").checked, fast:$("#f-fast").checked, sepopts:$("#f-sepopts").checked, thrift:$("#f-thrift").checked, pool:$("#f-pool").value,
     plan:$("#f-plan").checked, duel:$("#f-duel").checked, anka:$("#f-anka").checked,
     status:$("#f-status").checked, sound:$("#f-sound").checked,
     len: ($("#f-len button.on")||{dataset:{v:"mid"}}).dataset.v });
   saveCfg();
-  game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null };
+  game = { turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null, digest:null };
   enterGame(); nextTurn();
 };
 function enterGame(){ $("#setup").style.display="none"; $("#game").style.display="flex";
@@ -2589,7 +2748,7 @@ function offerResume(){
     + (last && !last.rolled && !last.manual ? "（等待掷骰）" : "")+'</div>'
     + '<button class="btn" style="width:100%" id="btn-resume">继续上次的安科</button></div>';
   $("#btn-resume").onclick = () => {
-    game = Object.assign({ turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null }, g);
+    game = Object.assign({ turns:[], aff:{}, clues:[], cost:0, tok:0, sheet:null, digest:null }, g);
     enterGame();
     const t = lastTurn();
     if(t && !t.rolled && !t.manual) dockRoll(); else nextTurn();
